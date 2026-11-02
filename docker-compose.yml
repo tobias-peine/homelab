@@ -1,0 +1,83 @@
+# kisium.de – Ghost mit MySQL
+#
+# Alle Geheimnisse kommen aus .env (siehe .env.example).
+# Aufruf:  docker compose up -d
+#
+# Absichtliche Entscheidungen:
+#   * Ghost lauscht nur auf 127.0.0.1 – der Reverse Proxy auf dem Host ist der einzige Weg nach außen.
+#   * MySQL hat einen Healthcheck; Ghost startet erst, wenn die Datenbank antwortet.
+#   * Beide Dienste haben restart: unless-stopped, damit ein Neustart des Servers reicht.
+
+name: kisium
+
+services:
+  ghost:
+    image: ghost:6-alpine
+    container_name: kisium-ghost
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      url: ${GHOST_URL:-https://kisium.de}
+      NODE_ENV: production
+      database__client: mysql
+      database__connection__host: mysql
+      database__connection__port: 3306
+      database__connection__user: ghost
+      database__connection__password: ${MYSQL_PASSWORD:?MYSQL_PASSWORD fehlt in .env}
+      database__connection__database: ghost
+      mail__transport: SMTP
+      mail__options__host: ${MAIL_HOST:-}
+      mail__options__port: ${MAIL_PORT:-587}
+      mail__options__secure: ${MAIL_SECURE:-false}
+      mail__options__auth__user: ${MAIL_USER:-}
+      mail__options__auth__pass: ${MAIL_PASSWORD:-}
+      mail__from: ${MAIL_FROM:-Kisium <hallo@kisium.de>}
+      # Keine Daten an Dritte: kein Gravatar, kein Update-Ping, kein RPC
+      privacy__useGravatar: "false"
+      privacy__useRpcPing: "false"
+      privacy__useUpdateCheck: "false"
+    volumes:
+      - ghost_content:/var/lib/ghost/content
+    networks:
+      - kisium
+    ports:
+      - "127.0.0.1:2368:2368"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2368/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  mysql:
+    image: mysql:8.4
+    container_name: kisium-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD fehlt in .env}
+      MYSQL_DATABASE: ghost
+      MYSQL_USER: ghost
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD fehlt in .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - kisium
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+networks:
+  kisium:
+    name: kisium-net
+
+volumes:
+  ghost_content:
+  mysql_data:
