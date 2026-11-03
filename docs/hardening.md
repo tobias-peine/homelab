@@ -276,11 +276,53 @@ mit Key und `sudo` hinein.
 **Risiko ohne:** Der Root-Key ist ein Single Point of Failure; jede Aktion läuft als
 root ohne getrennte Spur.
 
+## 14. Non-root für Open WebUI und Ollama
+
+**Was:** Open WebUI läuft als uid 1000 über ein Derived Image
+([compose/openwebui/Dockerfile](../compose/openwebui/Dockerfile)); Ollama läuft als
+uid 1000 mit `HOME=/tmp` und `OLLAMA_MODELS=/models/models`. NPM bleibt als Proxy root,
+weil es 80/443 bindet.
+
+**Warum:** Ein root-Prozess im Container ist root für alles, was in den Container
+gereicht wird. `cap_drop` und `no-new-privileges` reduzieren die Folgen, ersetzen aber
+keinen non-root-Benutzer.
+
+**Wie:** Open WebUI schreibt beim Start in `/app/backend/open_webui/static`; diese Dateien
+gehören im Upstream-Image root. Das Derived Image übergibt genau dieses Verzeichnis:
+
+```dockerfile
+USER root
+RUN chown -R 1000:1000 /app/backend/open_webui/static
+USER 1000:1000
+```
+
+Ollama braucht kein `/root/.ollama`, wenn `HOME` und `OLLAMA_MODELS` umgebogen werden:
+
+```yaml
+user: "1000:1000"
+environment:
+  HOME: /tmp
+  OLLAMA_MODELS: /models/models
+volumes:
+  - ollama:/models
+```
+
+**Nachweis:**
+
+```bash
+docker inspect open-webui ollama --format '{{.Name}} {{.Config.User}}'
+# /open-webui 1000:1000
+# /ollama 1000:1000
+```
+
+**Risiko ohne:** Open WebUI und Ollama wären weiterhin root-Prozesse mit den
+Docker-Default-Capabilities.
+
 ## Offene Punkte
 
 | Punkt | Status | Details |
 |---|---|---|
-| Non-root | Open WebUI, NPM, Ollama laufen als root | [hardening-offen.md](hardening-offen.md#non-root) |
+| NPM root | NPM läuft als root für 80/443; Caps reduziert | [hardening-offen.md](hardening-offen.md#npm-als-root) |
 | Tailscale | installiert, aber `Logged out` | [hardening-offen.md](hardening-offen.md#tailscale) |
 
 Grundsatz: Keine Maßnahme ist „empfohlen, weil Best Practice“. Jede Zeile hat einen

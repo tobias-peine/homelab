@@ -27,8 +27,9 @@ zurückgegeben werden.
 
 **Mitgenommen:** Ein leeres `Config.User` ist keine Aussage darüber, dass sich niemand
 Gedanken gemacht hat – es ist die Aussage, dass der Default greift. Defaults muss man
-nachsehen, nicht annehmen. Auf dem aktuellen Server laufen Open WebUI, NPM und Ollama
-noch als root; das steht als offener Punkt in [hardening-offen.md](hardening-offen.md).
+nachsehen, nicht annehmen. Open WebUI und Ollama laufen inzwischen als uid 1000 – Open
+WebUI über ein Derived Image, das `static/` übergibt, Ollama über `HOME=/tmp` und
+`OLLAMA_MODELS=/models/models`. NPM bleibt als Proxy root für 80/443, mit minimalen Caps.
 
 ## 2. Der Dienst war erreichbar – nur nicht von außen
 

@@ -45,22 +45,23 @@ gesetzt und ging beim Recreate verloren.
 
 | Container | Image | Zweck | Netz | Als root? |
 |---|---|---|---|---|
-| `npm` | `jc21/nginx-proxy-manager:latest` | TLS, Routing | beide | ja |
+| `npm` | `jc21/nginx-proxy-manager` (Digest) | TLS, Routing | beide | ja (80/443) |
 | `kisium-ghost` | `ghost:6-alpine` | Blog | `kisium-net` | ja (Entrypoint wechselt zu uid 1000) |
 | `kisium-mysql` | `mysql:8.4` | Blog-DB | `kisium-net` | ja |
-| `n8n` | `docker.n8n.io/n8nio/n8n:latest` | Automatisierung | `homeserver_default` | nein (`node`) |
-| `open-webui` | `ghcr.io/open-webui/open-webui:latest` | Chat | `homeserver_default` | ja (`0:0`) |
-| `searxng` | `searxng/searxng:latest` | Metasuche | `homeserver_default` | ja |
-| `paperless` | `ghcr.io/paperless-ngx/paperless-ngx:latest` | Dokumente | `homeserver_default` | ja |
+| `n8n` | `docker.n8n.io/n8nio/n8n` (Digest) | Automatisierung | `homeserver_default` | nein (`node`) |
+| `open-webui` | `open-webui:nonroot-20261103` (Derived) | Chat | `homeserver_default` | nein (1000) |
+| `searxng` | `searxng/searxng` (Digest) | Metasuche | `homeserver_default` | ja |
+| `paperless` | `ghcr.io/paperless-ngx/paperless-ngx` (Digest) | Dokumente | `homeserver_default` | ja |
 | `paperless-db` | `postgres:16` | Paperless-DB | `homeserver_default` | ja |
 | `paperless-broker` | `redis:7` | Paperless-Queue | `homeserver_default` | ja |
-| `ollama` | `ollama/ollama:latest` | lokale Modelle | `homeserver_default` | ja |
+| `ollama` | `ollama/ollama` (Digest) | lokale Modelle | `homeserver_default` | nein (1000) |
 
-Die Root-Spalte ist ein Befund, kein Entwurf: `docker inspect … .Config.User` ist bei
-allen außer `n8n` leer, bei `open-webui` sogar explizit `0:0`. Alle Container laufen mit
-`no-new-privileges` und `cap_drop: ALL`; nur die für den Entrypoint nötigen Capabilities
-sind zurückgegeben. Die `latest`-Images sind auf die am 03.11.2026 laufenden Digests
-gepinnt. Details: [hardening.md](hardening.md).
+Die Root-Spalte ist ein Befund, kein Entwurf. Open WebUI (über ein Derived Image) und
+Ollama laufen als uid 1000, `n8n` als `node`; NPM bleibt als Proxy root, weil es 80/443
+bindet. Die übrigen Container starten als root und wechseln im Entrypoint den Benutzer.
+Alle Container laufen mit `no-new-privileges` und `cap_drop: ALL`; nur die für den
+Entrypoint nötigen Capabilities sind zurückgegeben. Die `latest`-Images sind auf die am
+03.11.2026 laufenden Digests gepinnt. Details: [hardening.md](hardening.md).
 
 ## Netze und Ports
 
@@ -138,10 +139,8 @@ Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen B
 
 ## Offene Punkte
 
-- [ ] Tailscale ist installiert und `tailscaled` aktiv, aber `Logged out` –
-      `tailscale up` fehlt.
-- [ ] Non-root: Open WebUI, NPM und Ollama laufen als root; die übrigen Entrypoints
-      wechseln den Benutzer.
+- [ ] Tailscale: Server ist eingeloggt (`<TAILSCALE_IP>`); der Windows-Client fehlt noch.
+- [ ] NPM läuft als root für 80/443; Open WebUI und Ollama sind non-root.
 - [ ] Offsite-Backup und Verschlüsselung der Sicherungen
       (siehe [backup-restore.md](backup-restore.md)).
 - [ ] Monitoring-Ping für das Ghost-Backup.

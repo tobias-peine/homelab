@@ -60,11 +60,12 @@ Recreate verloren. Details, Routen und Belege:
 - **Healthcheck und Laufzeitrechte.** Der Ghost-Check nutzt `nc -z` statt `wget`;
   `init: true` sorgt dafür, dass Kindprozesse eingesammelt werden. Vorher standen 1.354
   Zombies auf dem Server. Alle Container laufen mit `no-new-privileges` und
-  `cap_drop: ALL`; nur die nötigen Capabilities sind zurückgegeben.
+  `cap_drop: ALL`; nur die nötigen Capabilities sind zurückgegeben. Open WebUI und
+  Ollama laufen als uid 1000, NPM bleibt als Proxy root für 80/443.
 
-**Noch offen:** non-root für Open WebUI, NPM und Ollama; Tailscale ist installiert, aber
-nicht eingeloggt; Offsite-Backup und Verschlüsselung; Monitoring-Ping für Ghost. Details:
-[docs/hardening.md](docs/hardening.md) und
+**Noch offen:** NPM läuft als root für 80/443; Tailscale ist auf dem Server aktiv, aber
+der Windows-Client fehlt; Offsite-Backup und Verschlüsselung; Monitoring-Ping für Ghost.
+Details: [docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 
 ## Backup & Recovery
