@@ -1,8 +1,8 @@
 NAMES              STATUS                  PORTS
 ollama             Up 2 hours (healthy)    11434/tcp
-open-webui         Up 2 hours (healthy)    <IP>:8080->8080/tcp
-npm                Up 11 hours             <IP>:80->80/tcp, [::]:80->80/tcp, <IP>:443->443/tcp, [::]:443->443/tcp, <IP>:81->81/tcp
-kisium-ghost       Up 11 hours (healthy)   <IP>:2368->2368/tcp
+open-webui         Up 2 hours (healthy)    127.0.0.1:8080->8080/tcp
+npm                Up 11 hours             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp, 127.0.0.1:81->81/tcp
+kisium-ghost       Up 11 hours (healthy)   127.0.0.1:2368->2368/tcp
 kisium-mysql       Up 11 hours (healthy)   3306/tcp, 33060/tcp
 paperless          Up 11 hours (healthy)   8000/tcp
 paperless-db       Up 11 hours             5432/tcp

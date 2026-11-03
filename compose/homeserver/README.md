@@ -8,7 +8,7 @@ Die Dateien sind aus dem laufenden Server übernommen und sanitisiert:
 
 - Hostnamen sind Platzhalter (`<DEINE_DOMAIN>`) bzw. Umgebungsvariablen.
 - Passwörter und Keys stehen nur in `.env`, nicht in der Compose.
-- Die Images sind auf Digests gepinnt; `open-webui` wird lokal gebaut.
+- Die externen Images sind auf Digests gepinnt; `open-webui` wird lokal gebaut.
 
 ## Start
 

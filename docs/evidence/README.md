@@ -1,6 +1,6 @@
 # Belege
 
-Rohausgaben vom 03.11.2026, gekürzt und redigiert: IPv4-Adressen sind `<IP>`,
+Rohausgaben vom 03.11.2026, gekürzt und redigiert: Öffentliche IPv4-Adressen sind `<IP>`; `127.0.0.1` und `0.0.0.0` bleiben als Bindungsangabe,
 die Domain ist `<DEINE_DOMAIN>`. Keine Tokens, Passwörter oder Keys.
 
 | Datei | Inhalt |
