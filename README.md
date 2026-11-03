@@ -1,117 +1,127 @@
-# Homelab – ein VPS, Docker und die Doku dazu
+# Homelab – ein VPS, zwei Compose-Projekte, ein Reverse Proxy
 
-Ein Blog braucht mehr als einen Container: TLS, eine Datenbank, Backups und Updates.
-Dieses Repo dokumentiert, wie ich das auf einem einzelnen VPS betreibe – inklusive der
-Stellen, die noch offen sind.
+Auf einem gemieteten VPS laufen zehn Container: Blog, Automatisierung, Dokumentenarchiv,
+Suche, lokale Sprachmodelle und der Reverse Proxy davor. Dieses Repo dokumentiert, was
+läuft, wie es abgesichert ist – und was noch offen ist.
 
-> **Stand:** 03.11.2026. Belegt sind Compose-Datei, HTTP-Header und ein Blick auf den
-> Server. Was ich nicht belegen kann, steht als `TODO` – nicht als Behauptung.
+> **Stand:** 03.11.2026. Belegt sind Compose-Dateien, `sshd -T`, `ufw status`,
+> Docker-Inspect und zwei Restore-Tests. Was ich nicht belegen kann, steht als `TODO`.
 
 ## Architektur
 
 ```mermaid
 flowchart TB
-    U[Browser] -->|HTTPS 443| P[Reverse Proxy<br/>openresty / NPM]
-    P -->|127.0.0.1:2368| G[Ghost 6<br/>kisium-ghost]
-    G -->|3306, nur kisium-net| D[(MySQL 8.4<br/>kisium-mysql)]
-    G --- V1[(Volume ghost_content)]
-    D --- V2[(Volume mysql_data)]
+    U[Browser] -->|"443/TLS"| NPM["NPM<br/>nginx-proxy-manager"]
+    NPM -->|"kisium.de"| G["Ghost 6"]
+    NPM -->|"n8n.*"| N8N["n8n"]
+    NPM -->|"chat.*"| OWUI["Open WebUI"]
+    NPM -->|"search.*"| SX["SearXNG"]
+    NPM -->|"paperless.*"| PL["Paperless-ngx"]
+    G --> MYSQL[(MySQL 8.4)]
+    PL --> PG[(Postgres 16)]
+    PL --> R[(Redis 7)]
+    OWUI --> OL["Ollama"]
 ```
 
 | Dienst | Zweck | Port intern | erreichbar über |
 |---|---|---|---|
-| Reverse Proxy (openresty / NPM) | TLS, HTTP→HTTPS, Routing | 80, 443 | öffentlich |
-| Ghost 6 | Blog | `127.0.0.1:2368` | nur über den Proxy |
-| MySQL 8.4 | Datenbank | 3306 im Netz `kisium-net` | nicht von außen |
-| n8n | Automatisierung | `TODO` | `TODO` |
-| Paperless | Dokumentenarchiv | `TODO` | `TODO` |
-| Ollama + Open WebUI | lokale Modelle | `TODO` | `TODO` |
+| NPM | TLS, HTTP→HTTPS, Routing | 80, 443; Admin `127.0.0.1:81` | öffentlich |
+| Ghost 6 | Blog | `127.0.0.1:2368` | `kisium.de` |
+| MySQL 8.4 | Blog-Datenbank | 3306 im Netz `kisium-net` | nicht von außen |
+| n8n | Automatisierung | `127.0.0.1:5678` | `n8n.<DEINE_DOMAIN>` |
+| Open WebUI | Chat-Oberfläche | `127.0.0.1:8080` | `chat.<DEINE_DOMAIN>` |
+| SearXNG | Metasuche | `127.0.0.1:8888` → 8080 | `search.<DEINE_DOMAIN>` |
+| Paperless-ngx | Dokumentenarchiv | 8000 intern | `paperless.<DEINE_DOMAIN>` |
+| Postgres 16 / Redis 7 | Paperless-DB und Broker | intern | nicht von außen |
+| Ollama | lokale Modelle | 11434 intern | nur über Open WebUI |
 
-Die letzten drei Dienste laufen laut Blogartikel auf derselben Maschine, ihre
-Compose-Dateien sind aber nicht in diesem Repo. Deshalb `TODO` statt geratener Ports.
-Details: [docs/architektur.md](docs/architektur.md).
+NPM hängt in beiden Netzen (`homeserver_default` und `kisium-net`) und ist damit die
+einzige Brücke zwischen den Compose-Projekten. Details, Routen und Belege:
+[docs/architektur.md](docs/architektur.md).
 
 ## Sicherheit
 
-- **Ghost lauscht nur auf `127.0.0.1:2368`.** Der Port ist nicht im Internet erreichbar;
-  jeder Zugriff muss über den Proxy mit TLS laufen. Ohne diese Bindung wäre der Blog
-  zusätzlich per HTTP und ohne Proxy-Regeln erreichbar.
-- **MySQL veröffentlicht keinen Port.** Die Datenbank ist nur im Docker-Netz
-  `kisium-net` ansprechbar. Ein offener 3306-Port ist einer der häufigsten Funde bei
-  automatisierten Scans.
-- **Zugangsdaten stehen nur in `.env`.** `${MYSQL_PASSWORD:?…}` bricht den Start ab,
-  wenn ein Wert fehlt – statt mit einem leeren Passwort weiterzulaufen. Die Datei ist
-  per `.gitignore` ausgeschlossen.
-- **TLS endet am Proxy, HTTP wird umgeleitet.** Das Zertifikat ist von Let's Encrypt
-  (gültig bis 30.01.2027); `http://` antwortet mit `301` auf HTTPS.
+- **SSH nur mit Schlüssel.** `sshd -T` am 03.11.2026: `passwordauthentication no`,
+  `permitrootlogin without-password`, `maxauthtries 6`. Ein Passwort-Login ist nicht
+  möglich; der Root-Login nur per Key.
+- **Firewall standardmäßig dicht.** UFW ist aktiv, eingehend `deny`, offen sind nur
+  22/tcp sowie 80/443/tcp – der Rest wird verworfen.
+- **Sicherheitsupdates laufen automatisch.** `unattended-upgrades` ist aktiv und
+  enabled; automatische Neustarts sind aus, damit der Blog nicht ungeplant neu startet.
+- **NPM-Admin nur lokal.** Die Oberfläche lauscht auf `127.0.0.1:81`, nicht im Internet.
+  Kein zweiter Weg am Proxy vorbei.
+- **Datenbanken ohne öffentlichen Port.** MySQL und Postgres sind nur in ihren
+  Docker-Netzen erreichbar. Ein offener 3306/5432-Port ist ein häufiges Scan-Ziel.
+- **TLS endet am Proxy, HTTP wird umgeleitet.** Let's-Encrypt-Zertifikat, gültig bis
+  30.01.2027; `http://` antwortet mit `301`.
 - **Keine Daten an Dritte.** Gravatar, Update-Ping und RPC sind in Ghost abgeschaltet.
-  Ein Blog über den eigenen Weg muss nicht nebenbei verraten, wer ihn liest.
-- **Healthcheck vor Abhängigkeit.** Ghost startet erst, wenn MySQL
-  `service_healthy` meldet. Das verhindert eine Neustart-Schleife beim Booten.
+- **Healthcheck ohne Zombie-Leck.** Der Ghost-Check nutzt `nc -z` statt `wget`; `init: true`
+  sorgt dafür, dass Kindprozesse eingesammelt werden. Vorher standen 1.354 Zombies auf
+  dem Server.
 
-**Noch nicht umgesetzt** (siehe [docs/hardening.md](docs/hardening.md)): HSTS-Header,
-SSH-Härtung, Firewall, automatische Updates, `cap_drop`/`no-new-privileges` in diesem
-Compose. Diese Punkte sind als offen markiert, nicht als erledigt.
+**Noch offen:** HSTS-Header, Container-Härtung (`cap_drop`, `no-new-privileges` – alle
+Container laufen als root), Fail2ban, Tailscale (nicht installiert), gepinnte
+Image-Versionen. Details: [docs/hardening.md](docs/hardening.md) und
+[docs/hardening-offen.md](docs/hardening-offen.md).
 
 ## Backup & Recovery
 
-Gesichert werden die MySQL-Datenbank und das Volume `ghost_content` – mit
-[`scripts/backup.sh`](scripts/backup.sh). Der Restore ist in
-[docs/backup-restore.md](docs/backup-restore.md) beschrieben und mit
-[`scripts/restore-test.sh`](scripts/restore-test.sh) automatisierbar; am 03.11.2026
-lief er gegen eine lokale Testinstanz in 43 Sekunden mit HTTP 200 und identischen
-Datenständen. Der Restore der Produktion steht noch aus.
+Paperless wird täglich um 03:30 gesichert (DB-Dump, Daten, Medien, Export, `.env`),
+Ghost seit dem 03.11. um 03:00 (DB-Dump, Content-Volume). Beide Sicherungen werden
+täglich in ein separates Compose-Projekt zurückgespielt: Paperless am 03.11. mit 150
+Dokumenten, 3 Benutzern, 56 Tags und 443 Media-Dateien (HTTP 302), Ghost mit 10
+Beiträgen, 1 Benutzer und 129 Einstellungen (HTTP 200, 47 Sekunden). Ablauf und die
+gefundenen Fehler: [docs/backup-restore.md](docs/backup-restore.md).
 
 ## Betrieb
 
 ```bash
-cd compose
-cp .env.example .env          # Werte eintragen, danach: chmod 600 .env
-docker compose up -d
-docker compose ps             # Healthchecks beobachten
-docker compose logs -f ghost  # Logs
+# Stack-Status
+cd /opt/stack  && docker compose ps
+cd /opt/kisium && docker compose ps
+
+# Logs
+docker logs -f kisium-ghost
+docker logs -f npm
+
+# Sicherungen
+sudo /opt/kisium/backup.sh
+sudo /opt/backups/paperless-backup.sh
+
+# Restore-Tests
+sudo /opt/backups/run-restore-test.sh     # Paperless
+./scripts/restore-test.sh                 # Ghost, eigenes Wegwerf-Projekt
 ```
 
-**Update:**
-
-```bash
-cd compose
-docker compose pull
-docker compose up -d
-```
-
-**Sicherung und Prüfung** (aus dem Wurzelverzeichnis):
-
-```bash
-./scripts/backup.sh
-./scripts/health-check.sh
-./scripts/restore-test.sh   # eigenes Wegwerf-Projekt, Produktion unberührt
-```
-
-Vor einem Ghost-Major-Upgrade: Backup anlegen und den Restore-Test wiederholen.
-MySQL bleibt auf `8.4` – ein Sprung auf eine neue Major-Version ist ein eigener Vorgang.
+**Update:** `docker compose pull && docker compose up -d`. Vorher sichern. Mehrere
+Images laufen auf `latest` – ein ungeprüfter Pull kann den Stack brechen.
 
 ## Was ich dabei gelernt habe
 
-1. **Ein Container ist keine Sicherheitsgrenze per Default.** Ohne `USER` läuft der
+1. **Ein Healthcheck kann das System kaputt machen.** `wget --spider` folgte dem
+   `301` von `http://127.0.0.1:2368` auf `https://127.0.0.1:2368` und sprach TLS mit
+   einem HTTP-Port. Jeder Fehlversuch hinterließ einen `ssl_client`-Zombie; nach elf
+   Stunden waren es 1.354. `nc -z` und `init: true` haben beides behoben.
+2. **Ein Restore-Test, der immer fehlschlägt, ist kein Test.** Der Paperless-Test lief
+   zwei Tage auf ein gelöschtes Backup, weil der Wrapper dem Skript den Pfad nicht
+   übergab. Ohne den Blick ins Log wäre das nie aufgefallen.
+3. **Ein Container ist keine Sicherheitsgrenze per Default.** Ohne `USER` läuft der
    Prozess als root. Bei offiziellen Images ist der User vorgegeben – nachsehen, nicht
    annehmen: `docker inspect <container> --format '{{.Config.User}}'`.
-2. **Der Fehler lag selten da, wo ich gesucht habe.** Der Dienst lief im Container,
-   war von außen aber nicht erreichbar – die Anwendung lauschte auf Loopback, der
-   Port-Proxy kam aus dem Bridge-Netz. Seitdem prüfe ich von außen nach innen:
+4. **Der Fehler lag selten da, wo ich gesucht habe.** Der Dienst lief im Container, war
+   von außen aber nicht erreichbar – die Anwendung lauschte auf Loopback, der Port-Proxy
+   kam aus dem Bridge-Netz. Seitdem prüfe ich von außen nach innen:
    DNS → Port → Proxy → Container → Anwendung.
-3. **Ein Backup ohne Restore-Test ist kein Backup.** Ein Skript, das ohne Fehler
-   durchläuft, beweist nur, dass es durchläuft. Erst das Zurückspielen zeigt, ob die
-   Daten vollständig sind.
-4. **Zombie-Prozesse sind ein Symptom.** Auf der Maschine standen am 02.11.2026
-   1.057 Zombies, der Swap war zu 48 % belegt. Die Ursache ist noch nicht gefunden –
-   das steht als offener Punkt in [docs/lessons-learned.md](docs/lessons-learned.md).
+5. **Dokumentation ist Teil des Betriebs.** Ein Skript, das läuft, beweist nicht, dass
+   die Daten sicher sind. Erst der dokumentierte Restore-Test macht aus einer Annahme
+   einen Beleg.
 
 ## Verweise
 
 - Blog: [kisium.de](https://kisium.de) – Erfahrungsbericht
   [Mein Homelab – drei teure Fehler](https://kisium.de/mein-homelab/)
-- [docs/architektur.md](docs/architektur.md) – Komponenten, Ports, Netzwerk
-- [docs/hardening.md](docs/hardening.md) – Maßnahmen, Begründung, Lücken
-- [docs/backup-restore.md](docs/backup-restore.md) – Strategie und Restore-Ablauf
+- [docs/architektur.md](docs/architektur.md) – Komponenten, Netze, Ports, Routen
+- [docs/hardening.md](docs/hardening.md) – umgesetzte Maßnahmen mit Begründung
+- [docs/hardening-offen.md](docs/hardening-offen.md) – offene Punkte und Prüfwege
+- [docs/backup-restore.md](docs/backup-restore.md) – Backup, Restore-Tests, Fehler
 - [docs/lessons-learned.md](docs/lessons-learned.md) – Fehler und was daraus wurde
