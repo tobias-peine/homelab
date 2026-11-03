@@ -67,6 +67,7 @@ Entrypoint nötigen Capabilities sind zurückgegeben. Die `latest`-Images sind a
 
 | Port | Dienst | Bindung | Von außen |
 |---|---|---|---|
+| 22 | SSH | nur `tailscale0` | nein, öffentlich geschlossen |
 | 80 | NPM | `0.0.0.0` | ja, `301` auf HTTPS |
 | 443 | NPM | `0.0.0.0` | ja, TLS |
 | 81 | NPM-Admin | `127.0.0.1` | nein |
@@ -77,8 +78,8 @@ Entrypoint nötigen Capabilities sind zurückgegeben. Die `latest`-Images sind a
 | 8000 | Paperless | nur Netz | nein |
 | 3306 / 5432 / 6379 / 11434 | MySQL / Postgres / Redis / Ollama | nur Netz | nein |
 
-UFW lässt eingehend ausschließlich 22, 80 und 443 zu. Alle anderen Dienste sind nur über
-den Proxy oder lokal erreichbar.
+UFW lässt eingehend ausschließlich 80/443 und `tailscale0` zu. Port 22 ist im
+öffentlichen Netz geschlossen; SSH läuft über das Tailnet.
 
 ## Routen im Proxy
 
@@ -139,9 +140,8 @@ Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen B
 
 ## Offene Punkte
 
-- [ ] Tailscale: Server und Windows-Client funktionieren; der Linux-Host für den
-      Offsite-Pull fehlt noch.
 - [ ] NPM läuft als root für 80/443; Open WebUI und Ollama sind non-root.
-- [ ] Offsite-Backup und Verschlüsselung der Sicherungen
-      (siehe [backup-restore.md](backup-restore.md)).
-- [ ] Monitoring-Ping für das Ghost-Backup.
+- [ ] Offsite-Timer auf dem Linux-Host installieren; der Pull läuft manuell über
+      Tailscale.
+- [ ] Monitoring-Ping für das Ghost-Backup (serverseitig; ntfy im Pull-Skript
+      vorhanden).

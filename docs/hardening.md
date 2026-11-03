@@ -318,12 +318,37 @@ docker inspect open-webui ollama --format '{{.Name}} {{.Config.User}}'
 **Risiko ohne:** Open WebUI und Ollama wären weiterhin root-Prozesse mit den
 Docker-Default-Capabilities.
 
+## 15. SSH nur über Tailscale
+
+**Was:** Port 22 ist im öffentlichen Netz geschlossen. UFW erlaubt eingehend nur noch
+80/443 und `tailscale0`. Admin-Zugang und Offsite-Pull laufen über `<TAILSCALE_IP>`.
+
+**Warum:** Ein öffentlicher SSH-Port ist trotz Key-only und Fail2ban eine zusätzliche
+Angriffsfläche. Über das Tailnet ist der Zugang privat und an dein Konto gebunden.
+
+**Wie:**
+
+```bash
+sudo ufw allow in on tailscale0
+sudo ufw delete allow 22/tcp
+```
+
+**Nachweis:**
+
+```bash
+sudo ufw status verbose     # 80/443 + tailscale0, kein 22/tcp
+ssh admin@<TAILSCALE_IP>     # funktioniert
+ssh admin@<öffentliche-IP>  # Connection timed out
+```
+
+**Risiko ohne:** Ein zweiter SSH-Weg bleibt offen. Bei einem Tailscale-Ausfall ist die
+Webtropia-Konsole der Notzugang.
+
 ## Offene Punkte
 
 | Punkt | Status | Details |
 |---|---|---|
 | NPM root | NPM läuft als root für 80/443; Caps reduziert | [hardening-offen.md](hardening-offen.md#npm-als-root) |
-| Tailscale | installiert, aber `Logged out` | [hardening-offen.md](hardening-offen.md#tailscale) |
 
 Grundsatz: Keine Maßnahme ist „empfohlen, weil Best Practice“. Jede Zeile hat einen
 Beleg vom Server oder steht ausdrücklich unter „offen“.

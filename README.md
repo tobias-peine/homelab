@@ -43,11 +43,12 @@ Recreate verloren. Details, Routen und Belege:
 
 ## Sicherheit
 
-- **SSH nur mit Schlüssel, kein Root-Login.** `sshd -T` am 03.11.2026:
-  `passwordauthentication no`, `permitrootlogin no`, `maxauthtries 6`. Der Zugang läuft
-  über `admin` mit sudo; Fail2ban bewacht den `sshd`-Jail.
+- **SSH nur mit Schlüssel, kein Root-Login, nur über Tailscale.** `sshd -T` am
+  03.11.2026: `passwordauthentication no`, `permitrootlogin no`, `maxauthtries 6`.
+  Der Zugang läuft über `admin` mit sudo; Fail2ban bewacht den `sshd`-Jail. Port 22
+  ist im öffentlichen Netz geschlossen; SSH geht nur über `<TAILSCALE_IP>`.
 - **Firewall standardmäßig dicht.** UFW ist aktiv, eingehend `deny`, offen sind nur
-  22/tcp sowie 80/443/tcp – der Rest wird verworfen.
+  80/443/tcp sowie `tailscale0` – der Rest wird verworfen.
 - **Sicherheitsupdates laufen automatisch.** `unattended-upgrades` ist aktiv und
   enabled; automatische Neustarts sind aus, damit der Blog nicht ungeplant neu startet.
 - **NPM-Admin nur lokal.** Die Oberfläche lauscht auf `127.0.0.1:81`, nicht im Internet.
@@ -63,9 +64,9 @@ Recreate verloren. Details, Routen und Belege:
   `cap_drop: ALL`; nur die nötigen Capabilities sind zurückgegeben. Open WebUI und
   Ollama laufen als uid 1000, NPM bleibt als Proxy root für 80/443.
 
-**Noch offen:** NPM läuft als root für 80/443; der Linux-Host für den Offsite-Pull ist
-noch nicht im Tailnet; der Offsite-Timer und die age-Key-Kopie stehen aus; ein
-serverseitiger Ghost-Ping fehlt. Details: [docs/hardening.md](docs/hardening.md) und
+**Noch offen:** NPM läuft als root für 80/443; der Offsite-Timer und die age-Key-Kopie
+stehen aus; ein serverseitiger Ghost-Ping fehlt. Details:
+[docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 
 ## Backup & Recovery

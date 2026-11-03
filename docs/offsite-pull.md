@@ -57,6 +57,9 @@ Erwartet: `homelab-<datum>.tgz.age`, Größe im Bereich der Server-Backups, im L
 (959 MB), mit dem Key wieder entschlüsselt und per `tar tzf` geprüft. Enthält alle
 Paperless-Tarballs und den Ghost-Dump.
 
+**Ergebnis über Tailscale (03.11.2026):** 957 MB in 5:51 Minuten über
+`<TAILSCALE_IP>`, Ghost-Backup 8 h alt, verschlüsselt, `OK`.
+
 ## Verschlüsselung
 
 - `age` verschlüsselt das Tar lokal; der private Key bleibt auf diesem Rechner.
@@ -90,8 +93,8 @@ systemctl --user list-timers homelab-backup.timer
 ```
 
 Der Timer läuft täglich um 05:30 mit `Persistent=true`: War der Rechner aus, wird der
-Lauf nach dem nächsten Login nachgeholt. Der Service setzt `KEEP=7` (sieben Archive,
-ca. 6,7 GB). Wenn der Timer auch ohne Login laufen soll:
+Lauf nach dem nächsten Login nachgeholt. Der Service setzt `SERVER=<TAILSCALE_IP>` und
+`KEEP=7` (sieben Archive, ca. 6,7 GB). Wenn der Timer auch ohne Login laufen soll:
 
 ```bash
 sudo loginctl enable-linger tobi
@@ -113,6 +116,6 @@ Der Rechner muss laufen. Ist er aus, wird nicht gezogen und nicht alarmiert.
   zweiter sicherer Ort.
 - **Kein inkrementelles Backup.** Jeder Lauf zieht ein vollständiges Tar; bei ~150 MB
   Paperless ist das vertretbar.
-- **Port 22 muss offen bleiben**, solange dieser Rechner nicht im Tailnet ist. Der
-  Pull nutzt SSH über die öffentliche Adresse. Erst wenn der Linux-Rechner selbst
-  Tailscale nutzt, kann `SERVER=<TAILSCALE_IP>` gesetzt und Port 22 geschlossen werden.
+- **Port 22:** Der Linux-Host ist im Tailnet; der Pull läuft über `<TAILSCALE_IP>`.
+  Port 22 kann geschlossen werden. Der öffentliche Hostname ist nur noch Fallback,
+  solange 22 offen ist.

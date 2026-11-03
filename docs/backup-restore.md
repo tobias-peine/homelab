@@ -13,8 +13,8 @@ gegen eine Wegwerf-Instanz getestet – nicht gegen die Produktion.
 Beide Sicherungen liegen lokal unter `/opt/backups/paperless` bzw. `/opt/kisium/backups`.
 Für Offsite zieht der Linux-Rechner die Archive per [`scripts/pull-backups.sh`](../scripts/pull-backups.sh)
 und verschlüsselt sie mit `age`. Erster Lauf am 03.11.2026: 957 MB, Ghost-Backup 8 h alt,
-verschlüsselt (959 MB) und mit dem Key wieder entschlüsselt. Details:
-[offsite-pull.md](offsite-pull.md).
+verschlüsselt (959 MB) und mit dem Key wieder entschlüsselt. Zweiter Lauf über Tailscale
+(Port 22 öffentlich zu): 957 MB in 5:51. Details: [offsite-pull.md](offsite-pull.md).
 
 ## Paperless
 

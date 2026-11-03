@@ -30,44 +30,6 @@ docker inspect npm --format \
 **Risiko ohne:** Ein Ausbruch aus NPM landet bei uid 0 – mit den fünf genannten
 Capabilities, nicht mit den Docker-Defaults.
 
-## Tailscale
-
-**Status:** Auf dem Server installiert und eingeloggt (`<TAILSCALE_IP>`,
-`vps2662496`). `ufw allow in on tailscale0` ist gesetzt. Der **Windows-Client**
-funktioniert: `ssh admin@<TAILSCALE_IP>` wurde am 03.11.2026 erfolgreich getestet. Der
-**Linux-Host** für den Offsite-Pull ist noch nicht im Tailnet; der Pull nutzt dort die
-öffentliche Adresse.
-
-**Warum es zählt:** Solange der Linux-Host nicht im Tailnet ist, bleibt SSH für den
-Backup-Pull öffentlich auf Port 22 (Key-only, Fail2ban, UFW). Das ist vertretbar, aber
-nicht der geplante private Zugang.
-
-**Prüfen:**
-
-```bash
-# auf dem Server
-tailscale status
-tailscale ip -4
-
-# auf Windows (funktioniert)
-tailscale status
-tailscale ping <TAILSCALE_IP>
-
-# auf dem Linux-Host (offen)
-tailscale ip -4
-```
-
-**Soll-Zustand:** Tailscale auf dem Linux-Host installieren, `tailscale up`, dann den
-Pull mit `SERVER=<TAILSCALE_IP>` testen. Erst wenn das läuft, Port 22 schließen:
-
-```bash
-sudo ufw delete allow 22/tcp
-sudo ufw status
-```
-
-**Risiko ohne:** Der Backup-Pull bleibt im öffentlichen Netz. Key-only, Fail2ban und
-UFW federn das ab, ersetzen aber keinen privaten Zugang.
-
 ## Vorgehen
 
 1. Ist-Wert mit dem Befehl oben auslesen.
