@@ -5,7 +5,7 @@
 | [`backup.sh`](backup.sh) | MySQL-Dump und Content-Volume sichern, prüfen, aufbewahren | getestet 03.11.2026 |
 | [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 47 s |
 | [`health-check.sh`](health-check.sh) | Container, HTTP, Platte, Zombies, Swap prüfen | getestet 03.11.2026 |
-| [`pull-backups.sh`](pull-backups.sh) | Offsite-Pull auf den Linux-Rechner, age, Ghost-Alter prüfen | Skript fertig, Lauf offen |
+| [`pull-backups.sh`](pull-backups.sh) | Offsite-Pull auf den Linux-Rechner, age, Ghost-Alter prüfen | getestet 03.11.2026, 957 MB |
 
 ## In der Produktion
 
@@ -91,8 +91,18 @@ SERVER=<TAILSCALE_IP> ./scripts/pull-backups.sh
 
 Zieht Paperless- und Ghost-Backups als ein Tar auf den Linux-Rechner, prüft das Alter des
 Ghost-Backups, verschlüsselt lokal mit `age` und schickt bei Fehlern einen ntfy-Ping.
-Der Rechner zieht – der Server braucht keinen Zugang hierher. Details:
+Der Rechner zieht – der Server braucht keinen Zugang hierher. Erster Lauf 03.11.2026:
+957 MB, Ghost-Backup 8 h alt, verschlüsselt und wieder entschlüsselt. Details:
 [docs/offsite-pull.md](../docs/offsite-pull.md).
+
+Automatisieren mit den Units unter [`systemd/`](systemd/):
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp ~/dsh-spielwiese/homelab/scripts/systemd/homelab-backup.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now homelab-backup.timer
+```
 
 ## Anforderungen
 
@@ -104,7 +114,7 @@ Der Rechner zieht – der Server braucht keinen Zugang hierher. Details:
 
 ## Offen
 
-- [ ] Offsite-Pull auf dem PC einrichten und einmal laufen lassen
-- [ ] `age`-Key auf dem PC erzeugen, privaten Key in den Passwortmanager
+- [ ] systemd-Timer auf dem Linux-Rechner installieren
+- [ ] `age`-Private-Key zusätzlich in den Passwortmanager legen
 - [ ] Ghost-Monitoring serverseitig (ntfy im Pull-Skript vorhanden)
 - [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version

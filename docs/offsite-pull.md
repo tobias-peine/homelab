@@ -53,6 +53,10 @@ tail -20 ~/dsh-spielwiese/.offsite/pull.log
 
 Erwartet: `homelab-<datum>.tgz.age`, Größe im Bereich der Server-Backups, im Log `OK`.
 
+**Ergebnis 03.11.2026:** 957 MB geholt, Ghost-Backup 8 h alt, mit `age` verschlüsselt
+(959 MB), mit dem Key wieder entschlüsselt und per `tar tzf` geprüft. Enthält alle
+Paperless-Tarballs und den Ghost-Dump.
+
 ## Verschlüsselung
 
 - `age` verschlüsselt das Tar lokal; der private Key bleibt auf diesem Rechner.
@@ -75,7 +79,25 @@ diese Kopie ist die kalte Offsite-Kopie.
 
 ## Automatisieren
 
-Cron auf dem Linux-Rechner (als `tobi`):
+Systemd-Timer auf dem Linux-Rechner (als `tobi`):
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp ~/dsh-spielwiese/homelab/scripts/systemd/homelab-backup.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now homelab-backup.timer
+systemctl --user list-timers homelab-backup.timer
+```
+
+Der Timer läuft täglich um 05:30 mit `Persistent=true`: War der Rechner aus, wird der
+Lauf nach dem nächsten Login nachgeholt. Der Service setzt `KEEP=7` (sieben Archive,
+ca. 6,7 GB). Wenn der Timer auch ohne Login laufen soll:
+
+```bash
+sudo loginctl enable-linger tobi
+```
+
+Alternativ per Cron:
 
 ```cron
 30 5 * * * /home/tobi/dsh-spielwiese/homelab/scripts/pull-backups.sh >> /home/tobi/dsh-spielwiese/.offsite/cron.log 2>&1

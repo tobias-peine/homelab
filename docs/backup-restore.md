@@ -12,8 +12,9 @@ gegen eine Wegwerf-Instanz getestet – nicht gegen die Produktion.
 
 Beide Sicherungen liegen lokal unter `/opt/backups/paperless` bzw. `/opt/kisium/backups`.
 Für Offsite zieht der Linux-Rechner die Archive per [`scripts/pull-backups.sh`](../scripts/pull-backups.sh)
-und verschlüsselt sie mit `age`. Das Skript liegt bereit; der erste Lauf auf dem PC steht
-noch aus. Details: [offsite-pull.md](offsite-pull.md).
+und verschlüsselt sie mit `age`. Erster Lauf am 03.11.2026: 957 MB, Ghost-Backup 8 h alt,
+verschlüsselt (959 MB) und mit dem Key wieder entschlüsselt. Details:
+[offsite-pull.md](offsite-pull.md).
 
 ## Paperless
 
@@ -136,8 +137,8 @@ vor dem Editieren eine Kopie ziehen.
 
 ## Offene Punkte
 
-- [ ] Offsite-Pull auf dem PC einrichten und einmal laufen lassen
-- [ ] `age`-Key auf dem PC erzeugen; privaten Key in den Passwortmanager
+- [ ] systemd-Timer auf dem Linux-Rechner einrichten (Skript und Units liegen bereit)
+- [ ] `age`-Private-Key zusätzlich in den Passwortmanager kopieren
 - [ ] Monitoring für das Ghost-Backup: ntfy im Pull-Skript, serverseitiger Ping fehlt
 - [ ] RPO/RTO festlegen: wie viel Datenverlust ist akzeptabel, wie lange darf der Restore dauern?
 - [ ] Restore auf einem **anderen** Host testen, nicht nur auf demselben

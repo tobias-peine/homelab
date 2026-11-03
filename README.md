@@ -64,7 +64,7 @@ Recreate verloren. Details, Routen und Belege:
   Ollama laufen als uid 1000, NPM bleibt als Proxy root für 80/443.
 
 **Noch offen:** NPM läuft als root für 80/443; der Tailscale-Client auf Windows fehlt;
-der Offsite-Pull muss auf dem PC einmal laufen; ein serverseitiger Ghost-Ping fehlt.
+der Offsite-Timer und die age-Key-Kopie stehen aus; ein serverseitiger Ghost-Ping fehlt.
 Details: [docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 
@@ -77,8 +77,8 @@ Dokumenten, 3 Benutzern, 56 Tags und 443 Media-Dateien (HTTP 302), Ghost mit 10
 Beiträgen, 1 Benutzer und 129 Einstellungen (HTTP 200, 47 Sekunden). Ablauf und die
 gefundenen Fehler: [docs/backup-restore.md](docs/backup-restore.md). Für Offsite zieht
 der Linux-Rechner die Archive per [`scripts/pull-backups.sh`](scripts/pull-backups.sh) und
-verschlüsselt sie mit `age`; der erste Lauf steht aus
-([docs/offsite-pull.md](docs/offsite-pull.md)).
+verschlüsselt sie mit `age`; erster Lauf am 03.11.2026: 957 MB, verschlüsselt und wieder
+entschlüsselt ([docs/offsite-pull.md](docs/offsite-pull.md)).
 
 ## Betrieb
 
