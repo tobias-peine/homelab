@@ -20,6 +20,7 @@ AGE_BIN="${AGE_BIN:-$OFFSITE_DIR/bin/age}"
 AGE_KEYGEN="${AGE_KEYGEN:-$(dirname "$AGE_BIN")/age-keygen}"
 AGE_KEY="${AGE_KEY:-$OFFSITE_DIR/age.key}"
 AGE_PUB="${AGE_PUB:-$OFFSITE_DIR/age.pub}"
+KNOWN_HOSTS="${KNOWN_HOSTS:-$OFFSITE_DIR/known_hosts}"
 KEEP="${KEEP:-14}"
 STAMP="$(date +%Y-%m-%d_%H%M%S)"
 TAR="$DEST/homelab-$STAMP.tgz"
@@ -42,9 +43,12 @@ trap 'die "abgebrochen in Zeile $LINENO"' ERR
 [ -x "$AGE_KEYGEN" ] || die "age-keygen fehlt: $AGE_KEYGEN"
 [ -f "$AGE_KEY" ] || die "age-Key fehlt: $AGE_KEY"
 [ -f "$AGE_PUB" ] || "$AGE_KEYGEN" -y "$AGE_KEY" > "$AGE_PUB"
+[ -f "$KNOWN_HOSTS" ] || die "known_hosts fehlt: $KNOWN_HOSTS (ssh-keyscan $SERVER > $KNOWN_HOSTS)"
 
-SSH=(ssh -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes)
-SCP=(scp -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes)
+SSH=(ssh -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
+  -o UserKnownHostsFile="$KNOWN_HOSTS" -o StrictHostKeyChecking=yes)
+SCP=(scp -i "$KEY" -o IdentitiesOnly=yes -o BatchMode=yes \
+  -o UserKnownHostsFile="$KNOWN_HOSTS" -o StrictHostKeyChecking=yes)
 
 log "Start – $REMOTE_USER@$SERVER"
 
