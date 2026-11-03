@@ -5,7 +5,7 @@
 | [`backup.sh`](backup.sh) | MySQL-Dump und Content-Volume sichern, prüfen, aufbewahren | getestet 03.11.2026 |
 | [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 47 s |
 | [`health-check.sh`](health-check.sh) | Container, HTTP, Platte, Zombies, Swap prüfen | getestet 03.11.2026 |
-| [`pull-backups.ps1`](pull-backups.ps1) | Offsite-Pull auf den PC, age-Verschlüsselung, Ghost-Alter prüfen | Skript fertig, Lauf offen |
+| [`pull-backups.sh`](pull-backups.sh) | Offsite-Pull auf den Linux-Rechner, age, Ghost-Alter prüfen | Skript fertig, Lauf offen |
 
 ## In der Produktion
 
@@ -82,15 +82,16 @@ Prüft Container-Status und Health, HTTP-Code, Plattenbelegung, Zombie-Prozesse 
 Exit 0 = ok (auch mit Warnungen), Exit 1 = harter Fehler. `LC_ALL=C` ist nötig, weil die
 Swap-Zeile je nach Locale „Auslager:“ heißt.
 
-## pull-backups.ps1 (Windows)
+## pull-backups.sh (Linux)
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\pull-backups.ps1 -Server <host>
+```bash
+./scripts/pull-backups.sh
+SERVER=<TAILSCALE_IP> ./scripts/pull-backups.sh
 ```
 
-Zieht Paperless- und Ghost-Backups als ein Tar auf den PC, prüft das Alter des
+Zieht Paperless- und Ghost-Backups als ein Tar auf den Linux-Rechner, prüft das Alter des
 Ghost-Backups, verschlüsselt lokal mit `age` und schickt bei Fehlern einen ntfy-Ping.
-Der PC zieht – der Server braucht keinen Zugang zum PC. Details:
+Der Rechner zieht – der Server braucht keinen Zugang hierher. Details:
 [docs/offsite-pull.md](../docs/offsite-pull.md).
 
 ## Anforderungen
