@@ -1,0 +1,4 @@
+mysqldump: [Warning] Using a password on the command line interface can be insecure.
+[2026-11-03 03:00:03] DB: ghost-db-20261103-030001.sql.gz
+[2026-11-03 03:00:04] Content: ghost-content-20261103-030001.tar.gz
+[2026-11-03 03:00:04] Fertig.

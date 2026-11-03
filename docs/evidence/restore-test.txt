@@ -1,0 +1,478 @@
+[2026-10-25 14:03:21] === Restore-Test START, Backup: paperless-20261025-132648.tar.gz ===
+[2026-10-25 14:03:21] === Restore-Test startet ===
+[2026-10-25 14:03:21] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-25 14:03:21] Entpacke Tarball ...
+[2026-10-25 14:03:21]   DB-Dump: 416K
+[2026-10-25 14:03:21] Entpacke Volumes ...
+[2026-10-25 14:03:22]   data:   980K
+[2026-10-25 14:03:22]   media:  53M
+[2026-10-25 14:03:22]   export: 4.0K
+[2026-10-25 14:03:22] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-25 14:03:26]   DB bereit (Versuch 2).
+[2026-10-25 14:03:26] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+pg_restore: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the database system is starting up
+[2026-10-25 14:03:27] FEHLER: pg_restore fehlgeschlagen
+[2026-10-25 14:03:27] Raeume Testprojekt auf ...
+[2026-10-25 14:03:28] Aufgeraeumt.
+[2026-10-25 14:03:28] === Restore-Test FEHLER (Exit 1) ===
+[2026-10-25 14:07:44] === Restore-Test START, Backup: paperless-20261025-132648.tar.gz ===
+[2026-10-25 14:07:44] === Restore-Test startet ===
+[2026-10-25 14:07:44] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-25 14:07:44] Entpacke Tarball ...
+[2026-10-25 14:07:45]   DB-Dump: 416K
+[2026-10-25 14:07:45] Entpacke Volumes ...
+[2026-10-25 14:07:45]   data:   980K
+[2026-10-25 14:07:45]   media:  53M
+[2026-10-25 14:07:45]   export: 4.0K
+[2026-10-25 14:07:45] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-25 14:07:49]   DB bereit (Versuch 2).
+[2026-10-25 14:07:49] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-10-25 14:07:55] Pruefe DB-Inhalt ...
+[2026-10-25 14:07:56]   Dokumente: 14
+[2026-10-25 14:07:56]   Benutzer:  2
+[2026-10-25 14:07:56]   Tags:      0
+[2026-10-25 14:07:56] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-10-25 14:07:58] Warte auf HTTP ...
+[2026-10-25 14:09:32]   Webserver antwortet (HTTP 302) nach 47 Versuchen.
+[2026-10-25 14:09:32]   Media-Dateien: 36
+[2026-10-25 14:09:32] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-10-25 14:09:32] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-10-25 14:09:32] Pausiere 60 Sekunden zum Anschauen ...
+[2026-10-25 14:10:32] Raeume Testprojekt auf ...
+[2026-10-25 14:10:44] Aufgeraeumt.
+[2026-10-25 14:10:45] === Restore-Test OK ===
+[2026-10-25 15:38:18] === Restore-Test START, Backup: paperless-20261025-132648.tar.gz ===
+[2026-10-25 15:38:18] === Restore-Test OK ===
+[2026-10-25 15:38:19] Monitoring-Ping OK
+[2026-10-25 15:39:43] === Restore-Test START, Backup: paperless-20261025-132648.tar.gz ===
+[2026-10-25 15:39:43] === Restore-Test FEHLER (Exit 1) — kein Ping ===
+[2026-10-26 04:00:01] === Restore-Test START, Backup: paperless-20261026-033001.tar.gz ===
+[2026-10-26 04:00:01] === Restore-Test startet ===
+[2026-10-26 04:00:01] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-26 04:00:01] Entpacke Tarball ...
+[2026-10-26 04:00:02]   DB-Dump: 416K
+[2026-10-26 04:00:02] Entpacke Volumes ...
+[2026-10-26 04:00:03]   data:   980K
+[2026-10-26 04:00:03]   media:  53M
+[2026-10-26 04:00:03]   export: 4.0K
+[2026-10-26 04:00:03] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-26 04:00:07]   DB bereit (Versuch 2).
+[2026-10-26 04:00:07] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-10-26 04:00:12] Pruefe DB-Inhalt ...
+[2026-10-26 04:00:13]   Dokumente: 14
+[2026-10-26 04:00:13]   Benutzer:  2
+[2026-10-26 04:00:13]   Tags:      0
+[2026-10-26 04:00:13] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-10-26 04:00:15] Warte auf HTTP ...
+[2026-10-26 04:01:38]   Webserver antwortet (HTTP 302) nach 42 Versuchen.
+[2026-10-26 04:01:38]   Media-Dateien: 36
+[2026-10-26 04:01:38] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-10-26 04:01:38] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-10-26 04:01:38] Pausiere 60 Sekunden zum Anschauen ...
+[2026-10-26 04:02:38] Raeume Testprojekt auf ...
+[2026-10-26 04:02:50] Aufgeraeumt.
+[2026-10-26 04:02:50] === Restore-Test OK ===
+[2026-10-26 04:02:50] Monitoring-Ping OK
+[2026-10-27 04:00:01] === Restore-Test START, Backup: paperless-20261027-033001.tar.gz ===
+[2026-10-27 04:00:01] === Restore-Test startet ===
+[2026-10-27 04:00:01] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-27 04:00:02] Entpacke Tarball ...
+[2026-10-27 04:00:03]   DB-Dump: 416K
+[2026-10-27 04:00:03] Entpacke Volumes ...
+[2026-10-27 04:00:03]   data:   980K
+[2026-10-27 04:00:03]   media:  53M
+[2026-10-27 04:00:03]   export: 4.0K
+[2026-10-27 04:00:03] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-27 04:00:10]   DB bereit (Versuch 3).
+[2026-10-27 04:00:10] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-10-27 04:00:16] Pruefe DB-Inhalt ...
+[2026-10-27 04:00:17]   Dokumente: 14
+[2026-10-27 04:00:17]   Benutzer:  2
+[2026-10-27 04:00:17]   Tags:      0
+[2026-10-27 04:00:17] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-10-27 04:00:19] Warte auf HTTP ...
+[2026-10-27 04:02:00]   Webserver antwortet (HTTP 302) nach 51 Versuchen.
+[2026-10-27 04:02:00]   Media-Dateien: 36
+[2026-10-27 04:02:00] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-10-27 04:02:00] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-10-27 04:02:00] Pausiere 60 Sekunden zum Anschauen ...
+[2026-10-27 04:03:00] Raeume Testprojekt auf ...
+[2026-10-27 04:03:12] Aufgeraeumt.
+[2026-10-27 04:03:12] === Restore-Test OK ===
+[2026-10-27 04:03:12] Monitoring-Ping OK
+[2026-10-28 04:00:01] === Restore-Test START, Backup: paperless-20261028-033001.tar.gz ===
+[2026-10-28 04:00:01] === Restore-Test startet ===
+[2026-10-28 04:00:01] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-28 04:00:01] Entpacke Tarball ...
+[2026-10-28 04:00:02]   DB-Dump: 416K
+[2026-10-28 04:00:02] Entpacke Volumes ...
+[2026-10-28 04:00:03]   data:   980K
+[2026-10-28 04:00:03]   media:  53M
+[2026-10-28 04:00:03]   export: 4.0K
+[2026-10-28 04:00:03] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-28 04:00:09]   DB bereit (Versuch 3).
+[2026-10-28 04:00:09] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-10-28 04:00:15] Pruefe DB-Inhalt ...
+[2026-10-28 04:00:16]   Dokumente: 14
+[2026-10-28 04:00:16]   Benutzer:  2
+[2026-10-28 04:00:16]   Tags:      0
+[2026-10-28 04:00:16] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-10-28 04:00:17] Warte auf HTTP ...
+[2026-10-28 04:01:36]   Webserver antwortet (HTTP 302) nach 40 Versuchen.
+[2026-10-28 04:01:36]   Media-Dateien: 36
+[2026-10-28 04:01:36] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-10-28 04:01:36] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-10-28 04:01:36] Pausiere 60 Sekunden zum Anschauen ...
+[2026-10-28 04:02:36] Raeume Testprojekt auf ...
+[2026-10-28 04:02:48] Aufgeraeumt.
+[2026-10-28 04:02:48] === Restore-Test OK ===
+[2026-10-28 04:02:48] Monitoring-Ping OK
+[2026-10-29 04:00:01] === Restore-Test START, Backup: paperless-20261029-033001.tar.gz ===
+[2026-10-29 04:00:01] === Restore-Test startet ===
+[2026-10-29 04:00:01] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-29 04:00:01] Entpacke Tarball ...
+[2026-10-29 04:00:02]   DB-Dump: 416K
+[2026-10-29 04:00:02] Entpacke Volumes ...
+[2026-10-29 04:00:03]   data:   980K
+[2026-10-29 04:00:03]   media:  53M
+[2026-10-29 04:00:03]   export: 4.0K
+[2026-10-29 04:00:03] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-29 04:00:10]   DB bereit (Versuch 3).
+[2026-10-29 04:00:10] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-10-29 04:00:15] Pruefe DB-Inhalt ...
+[2026-10-29 04:00:16]   Dokumente: 14
+[2026-10-29 04:00:16]   Benutzer:  2
+[2026-10-29 04:00:16]   Tags:      0
+[2026-10-29 04:00:16] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-10-29 04:00:18] Warte auf HTTP ...
+[2026-10-29 04:01:45]   Webserver antwortet (HTTP 302) nach 44 Versuchen.
+[2026-10-29 04:01:45]   Media-Dateien: 36
+[2026-10-29 04:01:45] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-10-29 04:01:45] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-10-29 04:01:45] Pausiere 60 Sekunden zum Anschauen ...
+[2026-10-29 04:02:45] Raeume Testprojekt auf ...
+[2026-10-29 04:02:57] Aufgeraeumt.
+[2026-10-29 04:02:57] === Restore-Test OK ===
+[2026-10-29 04:02:57] Monitoring-Ping OK
+[2026-10-30 04:00:01] === Restore-Test START, Backup: paperless-20261030-033001.tar.gz ===
+[2026-10-30 04:00:01] === Restore-Test startet ===
+[2026-10-30 04:00:01] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-30 04:00:01] Entpacke Tarball ...
+[2026-10-30 04:00:01]   DB-Dump: 416K
+[2026-10-30 04:00:01] Entpacke Volumes ...
+[2026-10-30 04:00:02]   data:   980K
+[2026-10-30 04:00:02]   media:  53M
+[2026-10-30 04:00:02]   export: 4.0K
+[2026-10-30 04:00:02] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-30 04:00:09]   DB bereit (Versuch 3).
+[2026-10-30 04:00:09] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-10-30 04:00:14] Pruefe DB-Inhalt ...
+[2026-10-30 04:00:15]   Dokumente: 14
+[2026-10-30 04:00:15]   Benutzer:  2
+[2026-10-30 04:00:15]   Tags:      0
+[2026-10-30 04:00:15] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-10-30 04:00:16] Warte auf HTTP ...
+[2026-10-30 04:01:31]   Webserver antwortet (HTTP 302) nach 38 Versuchen.
+[2026-10-30 04:01:31]   Media-Dateien: 36
+[2026-10-30 04:01:31] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-10-30 04:01:31] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-10-30 04:01:31] Pausiere 60 Sekunden zum Anschauen ...
+[2026-10-30 04:02:31] Raeume Testprojekt auf ...
+[2026-10-30 04:02:42] Aufgeraeumt.
+[2026-10-30 04:02:42] === Restore-Test OK ===
+[2026-10-30 04:02:42] Monitoring-Ping OK
+[2026-10-31 04:00:01] === Restore-Test START, Backup: paperless-20261031-033001.tar.gz ===
+[2026-10-31 04:00:01] === Restore-Test startet ===
+[2026-10-31 04:00:01] Backup: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-10-31 04:00:01] Entpacke Tarball ...
+[2026-10-31 04:00:02]   DB-Dump: 416K
+[2026-10-31 04:00:02] Entpacke Volumes ...
+[2026-10-31 04:00:02]   data:   980K
+[2026-10-31 04:00:02]   media:  53M
+[2026-10-31 04:00:02]   export: 4.0K
+[2026-10-31 04:00:02] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-10-31 04:00:09]   DB bereit (Versuch 3).
+[2026-10-31 04:00:09] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-10-31 04:00:14] Pruefe DB-Inhalt ...
+[2026-10-31 04:00:15]   Dokumente: 14
+[2026-10-31 04:00:15]   Benutzer:  2
+[2026-10-31 04:00:15]   Tags:      0
+[2026-10-31 04:00:15] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-10-31 04:00:16] Warte auf HTTP ...
+[2026-10-31 04:01:17]   Webserver antwortet (HTTP 302) nach 31 Versuchen.
+[2026-10-31 04:01:17]   Media-Dateien: 36
+[2026-10-31 04:01:17] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-10-31 04:01:17] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-10-31 04:01:17] Pausiere 60 Sekunden zum Anschauen ...
+[2026-10-31 04:02:17] Raeume Testprojekt auf ...
+[2026-10-31 04:02:28] Aufgeraeumt.
+[2026-10-31 04:02:28] === Restore-Test OK ===
+[2026-10-31 04:02:28] Monitoring-Ping OK
+[2026-11-01 04:00:01] === Restore-Test START, Backup: paperless-20261101-033001.tar.gz ===
+[2026-11-01 04:00:01] FEHLER: Backup nicht gefunden: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-11-01 04:00:01] Raeume Testprojekt auf ...
+[2026-11-01 04:00:01] Aufgeraeumt.
+[2026-11-01 04:00:01] === Restore-Test FEHLER (Exit 1) — kein Ping ===
+[2026-11-02 04:00:01] === Restore-Test START, Backup: paperless-20261102-033001.tar.gz ===
+[2026-11-02 04:00:01] FEHLER: Backup nicht gefunden: /opt/backups/paperless/paperless-20261025-132648.tar.gz
+[2026-11-02 04:00:01] Raeume Testprojekt auf ...
+[2026-11-02 04:00:01] Aufgeraeumt.
+[2026-11-02 04:00:01] === Restore-Test FEHLER (Exit 1) — kein Ping ===
+[2026-11-03 01:09:35] === Restore-Test START, Backup: paperless-20261102-033001.tar.gz ===
+[2026-11-03 01:09:35] === Restore-Test FEHLER (Exit 1) — kein Ping ===
+[2026-11-03 01:09:41] === Restore-Test START, Backup: paperless-20261102-033001.tar.gz ===
+/opt/backups/restore-test.sh: line 1: /opt/backups/run-restore-test.sh:: No such file or directory
+[2026-11-03 01:09:41] === Restore-Test FEHLER (Exit 127) — kein Ping ===
+[2026-11-03 01:10:26] === Restore-Test START, Backup: paperless-20261102-033001.tar.gz ===
+[2026-11-03 01:10:26] === Restore-Test startet ===
+[2026-11-03 01:10:26] Backup: /opt/backups/paperless/paperless-20261102-033001.tar.gz
+[2026-11-03 01:10:26] Entpacke Tarball ...
+[2026-11-03 01:10:28]   DB-Dump: 792K
+[2026-11-03 01:10:28] Entpacke Volumes ...
+[2026-11-03 01:10:30]   data:   41M
+[2026-11-03 01:10:30]   media:  130M
+[2026-11-03 01:10:30]   export: 4.0K
+[2026-11-03 01:10:30] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-11-03 01:10:34]   DB bereit (Versuch 2).
+[2026-11-03 01:10:34] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-11-03 01:10:39] Pruefe DB-Inhalt ...
+[2026-11-03 01:10:40]   Dokumente: 150
+[2026-11-03 01:10:40]   Benutzer:  3
+[2026-11-03 01:10:40]   Tags:      56
+[2026-11-03 01:10:40] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-11-03 01:10:42] Warte auf HTTP ...
+[2026-11-03 01:12:09]   Webserver antwortet (HTTP 302) nach 44 Versuchen.
+[2026-11-03 01:12:09]   Media-Dateien: 443
+[2026-11-03 01:12:09] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-11-03 01:12:09] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-11-03 01:12:09] Pausiere 60 Sekunden zum Anschauen ...
+[2026-11-03 01:13:09] Raeume Testprojekt auf ...
+[2026-11-03 01:13:21] Aufgeraeumt.
+[2026-11-03 01:13:21] === Restore-Test OK ===
+[2026-11-03 01:13:22] Monitoring-Ping OK
+[2026-11-03 04:00:01] === Restore-Test START, Backup: paperless-20261103-033001.tar.gz ===
+[2026-11-03 04:00:01] === Restore-Test startet ===
+[2026-11-03 04:00:01] Backup: /opt/backups/paperless/paperless-20261103-033001.tar.gz
+[2026-11-03 04:00:01] Entpacke Tarball ...
+[2026-11-03 04:00:04]   DB-Dump: 804K
+[2026-11-03 04:00:04] Entpacke Volumes ...
+[2026-11-03 04:00:06]   data:   38M
+[2026-11-03 04:00:06]   media:  130M
+[2026-11-03 04:00:06]   export: 4.0K
+[2026-11-03 04:00:06] Starte DB ...
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Creating 
+ Network pl-restore-test_default Created 
+ Network pl-restore-test_default Created 
+ Container pl-restore-test-db-1 Creating 
+ Container pl-restore-test-db-1 Created 
+ Container pl-restore-test-db-1 Starting 
+ Container pl-restore-test-db-1 Started 
+[2026-11-03 04:00:10]   DB bereit (Versuch 2).
+[2026-11-03 04:00:10] Spiele DB-Dump ein ...
+ pl-restore-test-db-1 Copying /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+ pl-restore-test-db-1 Copied /tmp/pl-restore-test/raw/paperless-db.dump to pl-restore-test-db-1:/tmp/paperless-db.dump
+[2026-11-03 04:00:16] Pruefe DB-Inhalt ...
+[2026-11-03 04:00:17]   Dokumente: 150
+[2026-11-03 04:00:17]   Benutzer:  3
+[2026-11-03 04:00:17]   Tags:      56
+[2026-11-03 04:00:17] Starte Webserver ...
+ Container pl-restore-test-db-1 Running 
+ Container pl-restore-test-broker-1 Creating 
+ Container pl-restore-test-broker-1 Created 
+ Container pl-restore-test-webserver-1 Creating 
+ Container pl-restore-test-webserver-1 Created 
+ Container pl-restore-test-broker-1 Starting 
+ Container pl-restore-test-db-1 Waiting 
+ Container pl-restore-test-db-1 Healthy 
+ Container pl-restore-test-broker-1 Started 
+ Container pl-restore-test-webserver-1 Starting 
+ Container pl-restore-test-webserver-1 Started 
+[2026-11-03 04:00:18] Warte auf HTTP ...
+[2026-11-03 04:01:25]   Webserver antwortet (HTTP 302) nach 34 Versuchen.
+[2026-11-03 04:01:25]   Media-Dateien: 443
+[2026-11-03 04:01:25] === OK: RESTORE-TEST ERFOLGREICH ===
+[2026-11-03 04:01:25] Testprojekt laeuft auf http://<server-ip>:8001 bis Skript endet.
+[2026-11-03 04:01:25] Pausiere 60 Sekunden zum Anschauen ...
+[2026-11-03 04:02:25] Raeume Testprojekt auf ...
+[2026-11-03 04:02:36] Aufgeraeumt.
+[2026-11-03 04:02:36] === Restore-Test OK ===
+[2026-11-03 04:02:37] Monitoring-Ping OK
