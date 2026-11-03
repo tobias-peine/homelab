@@ -55,10 +55,12 @@ Compose. Diese Punkte sind als offen markiert, nicht als erledigt.
 
 ## Backup & Recovery
 
-Gesichert werden die MySQL-Datenbank und das Volume `ghost_content`. Der Restore ist in
-[docs/backup-restore.md](docs/backup-restore.md) als nummerierter Ablauf mit
-Erwartungswerten beschrieben. Ein protokollierter Durchlauf mit Datum und Messwerten
-fehlt noch – ohne ihn ist ein Backup nur eine Annahme.
+Gesichert werden die MySQL-Datenbank und das Volume `ghost_content` – mit
+[`scripts/backup.sh`](scripts/backup.sh). Der Restore ist in
+[docs/backup-restore.md](docs/backup-restore.md) beschrieben und mit
+[`scripts/restore-test.sh`](scripts/restore-test.sh) automatisierbar; am 03.11.2026
+lief er gegen eine lokale Testinstanz in 43 Sekunden mit HTTP 200 und identischen
+Datenständen. Der Restore der Produktion steht noch aus.
 
 ## Betrieb
 
@@ -76,6 +78,14 @@ docker compose logs -f ghost  # Logs
 cd compose
 docker compose pull
 docker compose up -d
+```
+
+**Sicherung und Prüfung** (aus dem Wurzelverzeichnis):
+
+```bash
+./scripts/backup.sh
+./scripts/health-check.sh
+./scripts/restore-test.sh   # eigenes Wegwerf-Projekt, Produktion unberührt
 ```
 
 Vor einem Ghost-Major-Upgrade: Backup anlegen und den Restore-Test wiederholen.
