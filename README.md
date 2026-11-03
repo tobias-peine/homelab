@@ -36,7 +36,9 @@ flowchart TB
 | Ollama | lokale Modelle | 11434 intern | nur über Open WebUI |
 
 NPM hängt in beiden Netzen (`homeserver_default` und `kisium-net`) und ist damit die
-einzige Brücke zwischen den Compose-Projekten. Details, Routen und Belege:
+einzige Brücke zwischen den Compose-Projekten. Die Verbindung zu `kisium-net` steht als
+externes Netz in der Stack-Compose – sie war vorher manuell gesetzt und ging beim
+Recreate verloren. Details, Routen und Belege:
 [docs/architektur.md](docs/architektur.md).
 
 ## Sicherheit
@@ -53,15 +55,15 @@ einzige Brücke zwischen den Compose-Projekten. Details, Routen und Belege:
 - **Datenbanken ohne öffentlichen Port.** MySQL und Postgres sind nur in ihren
   Docker-Netzen erreichbar. Ein offener 3306/5432-Port ist ein häufiges Scan-Ziel.
 - **TLS endet am Proxy, HTTP wird umgeleitet.** Let's-Encrypt-Zertifikat, gültig bis
-  30.01.2027; `http://` antwortet mit `301`.
+  30.01.2027; `http://` antwortet mit `301`, HSTS ist auf allen fünf Hosts gesetzt.
 - **Keine Daten an Dritte.** Gravatar, Update-Ping und RPC sind in Ghost abgeschaltet.
 - **Healthcheck ohne Zombie-Leck.** Der Ghost-Check nutzt `nc -z` statt `wget`; `init: true`
   sorgt dafür, dass Kindprozesse eingesammelt werden. Vorher standen 1.354 Zombies auf
-  dem Server.
+  dem Server. Alle Container laufen zusätzlich mit `no-new-privileges`.
 
-**Noch offen:** HSTS-Header, Container-Härtung (`cap_drop`, `no-new-privileges` – alle
-Container laufen als root), Fail2ban, Tailscale (nicht installiert), gepinnte
-Image-Versionen. Details: [docs/hardening.md](docs/hardening.md) und
+**Noch offen:** Container-Härtung über `no-new-privileges` hinaus (`cap_drop`, non-root),
+Fail2ban, Tailscale (nicht installiert), Root-Login auf `no`. Details:
+[docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 
 ## Backup & Recovery
@@ -93,8 +95,8 @@ sudo /opt/backups/run-restore-test.sh     # Paperless
 ./scripts/restore-test.sh                 # Ghost, eigenes Wegwerf-Projekt
 ```
 
-**Update:** `docker compose pull && docker compose up -d`. Vorher sichern. Mehrere
-Images laufen auf `latest` – ein ungeprüfter Pull kann den Stack brechen.
+**Update:** Die `latest`-Images sind auf Digests gepinnt. Ein Update heißt bewusst:
+neuen Digest wählen, `docker compose up -d`, Health prüfen. Vorher sichern.
 
 ## Was ich dabei gelernt habe
 

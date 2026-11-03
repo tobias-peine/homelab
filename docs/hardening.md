@@ -136,15 +136,64 @@ healthcheck:
 **Risiko ohne:** Der Container gilt dauerhaft als `unhealthy`, die Prozessliste läuft
 voll, und irgendwann fehlen PIDs oder Speicher.
 
+## 9. HSTS auf allen Proxy-Hosts
+
+**Was:** Alle fünf Hosts senden `Strict-Transport-Security: max-age=31536000; includeSubDomains`.
+
+**Warum:** Ohne HSTS kann der erste Aufruf über HTTP abgefangen werden, bevor der `301`
+greift. Der Browser merkt sich dann, dass die Seite nur über HTTPS zu laden ist.
+
+**Wie:** In `/data/nginx/custom/server_proxy.conf` (wird in jeden Proxy-Host eingebunden):
+
+```nginx
+more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+```
+
+`add_header` auf Server-Ebene funktionierte nicht: `location /` bindet
+`conf.d/include/proxy.conf` ein, und dort steht `add_header X-Served-By $host;`. Ein
+eigenes `add_header` in der Location bricht die Vererbung von der Server-Ebene. Das
+headers-more-Modul (in NPM enthalten) setzt den Header unabhängig davon.
+
+**Nachweis:**
+
+```bash
+curl -sSI https://<DEINE_DOMAIN> | grep -i strict-transport
+```
+
+**Risiko ohne:** SSL-Stripping beim ersten Request; der Browser kennt die HTTPS-Pflicht
+nicht.
+
+## 10. `no-new-privileges` für alle Container
+
+**Was:** Alle zehn Container laufen mit `security_opt: ["no-new-privileges:true"]`.
+
+**Warum:** Ein gesetztes Setuid-Binary oder ein privilegierter Helper kann innerhalb des
+Containers keine zusätzlichen Rechte mehr gewinnen. Das ist besonders relevant, weil
+fast alle Dienste als root laufen.
+
+**Wie:** In den Compose-Dateien pro Service:
+
+```yaml
+security_opt:
+  - no-new-privileges:true
+```
+
+**Nachweis:**
+
+```bash
+docker inspect <container> --format '{{.HostConfig.SecurityOpt}}'   # [no-new-privileges:true]
+```
+
+**Risiko ohne:** Ein Fehler in einem exponierten Dienst kann über Setuid-Binaries
+Rechte eskalieren, statt auf den Container beschränkt zu bleiben.
+
 ## Offene Punkte
 
 | Punkt | Status | Details |
 |---|---|---|
-| Container-Härtung | alle root, kein `cap_drop` | [hardening-offen.md](hardening-offen.md#container-härtung) |
-| HSTS | Header fehlt | [hardening-offen.md](hardening-offen.md#hsts-fehlt) |
+| Container-Härtung | `no-new-privileges` aktiv; `cap_drop`/non-root offen | [hardening-offen.md](hardening-offen.md#container-härtung) |
 | Fail2ban | nicht aktiv | [hardening-offen.md](hardening-offen.md#fail2ban) |
 | Tailscale | nicht installiert | [hardening-offen.md](hardening-offen.md#tailscale) |
-| Image-Versionen | mehrere `latest` | [hardening-offen.md](hardening-offen.md#image-versionen) |
 | Root-Login | per Key erlaubt | [hardening-offen.md](hardening-offen.md#root-login) |
 
 Grundsatz: Keine Maßnahme ist „empfohlen, weil Best Practice“. Jede Zeile hat einen

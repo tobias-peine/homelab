@@ -5,50 +5,40 @@ der Nachweis vorliegt – kein Soll-Zustand, der als Ist-Zustand ausgegeben wird
 
 ## Container-Härtung
 
-**Status:** `docker inspect` zeigt für fast alle Container ein leeres `Config.User`
-(= root), für `open-webui` explizit `0:0`. `CapDrop` ist überall `[]`,
-`SecurityOpt` ist überall `[]`. Nur `n8n` läuft als `node`.
+**Status:** `no-new-privileges:true` ist seit 03.11. für alle zehn Container gesetzt.
+`CapDrop` ist weiterhin überall `[]`; fast alle Dienste laufen als root (`open-webui`
+sogar explizit `0:0`). Nur `n8n` läuft als `node`.
 
-**Warum es zählt:** Ein Prozess als root im Container ist root für alles, was in den
-Container gereicht wird. Ohne `no-new-privileges` kann ein gesetztes Setuid-Binary
-Rechte eskalieren; ohne `cap_drop` behält der Container die Docker-Default-Capabilities.
+**Warum es zählt:** `no-new-privileges` verhindert das Gewinnen neuer Rechte, aber nicht
+die Rechte, die der Prozess beim Start schon hat. Ein root-Prozess mit den
+Docker-Default-Capabilities kann weiterhin viel: `CHOWN`, `DAC_OVERRIDE`, `SETUID`,
+`SETGID`, `NET_RAW` und andere.
 
 **Prüfen:**
 
 ```bash
-for c in $(sudo docker ps -q); do
-  sudo docker inspect "$c" --format \
+for c in $(docker ps -q); do
+  docker inspect "$c" --format \
     '{{.Name}} user={{if .Config.User}}{{.Config.User}}{{else}}(root){{end}} capdrop={{.HostConfig.CapDrop}} secopt={{.HostConfig.SecurityOpt}}'
 done
 ```
 
-**Soll-Zustand (schrittweise, nicht blind):** `security_opt: ["no-new-privileges:true"]`
-für alle Dienste; `cap_drop: [ALL]` dort, wo der Dienst keine Capability braucht;
-non-root-User, wo das Image es unterstützt. NPM braucht Port 80/443 – `cap_drop: ALL`
-würde das ohne weitere Anpassung brechen.
+**Soll-Zustand (dienstweise, nicht blind):**
 
-**Risiko ohne:** Ein Fehler in einem exponierten Dienst (n8n, Open WebUI, Paperless)
-trifft einen root-Prozess mit Default-Capabilities.
+| Dienst | Braucht | Vorschlag |
+|---|---|---|
+| `npm` | Port 80/443 | `cap_drop: [ALL]` + `cap_add: [NET_BIND_SERVICE, SETUID, SETGID, CHOWN]` |
+| `kisium-ghost` | Drop auf node, Content schreiben | `SETUID`, `SETGID`, `CHOWN`, `DAC_OVERRIDE` |
+| `kisium-mysql` / `paperless-db` | Initialisierung, Drop auf DB-User | `CHOWN`, `DAC_OVERRIDE`, `SETUID`, `SETGID`, `FOWNER` |
+| `paperless`, `searxng` | Drop auf Dienst-User | `SETUID`, `SETGID`, `CHOWN` |
+| `ollama`, `n8n`, `open-webui`, `paperless-broker` | keine privilegierten Ports | `cap_drop: [ALL]` testen |
 
-## HSTS fehlt
+Ein pauschales `cap_drop: ALL` bricht mindestens NPM (Port 80/443) und die
+Entrypoints, die per `gosu`/`su-exec` den Benutzer wechseln. Deshalb: ein Dienst pro
+Änderung, `docker compose up -d <dienst>`, Health prüfen, bei Fehler zurück.
 
-**Status:** Die NPM-Konfiguration enthält eine `map $scheme $hsts_header`, aber kein
-`add_header Strict-Transport-Security`. Die HTTPS-Antwort vom 03.11.2026 enthält den
-Header nicht.
-
-**Warum es zählt:** Ohne HSTS kann ein Angreifer den ersten Aufruf über HTTP abfangen,
-bevor der `301` greift (SSL-Stripping).
-
-**Prüfen:**
-
-```bash
-curl -sSI https://<DEINE_DOMAIN> | grep -i strict-transport
-```
-
-**Soll-Zustand:** `add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;`
-global in NPM (Custom Config) oder pro Proxy Host unter „Advanced“.
-
-**Risiko ohne:** Der erste Request ist angreifbar; der Browser merkt sich HTTPS nicht.
+**Risiko ohne:** Ein Fehler in einem exponierten Dienst trifft einen root-Prozess mit
+Default-Capabilities. `no-new-privileges` reduziert das, beseitigt es aber nicht.
 
 ## Fail2ban
 
@@ -91,27 +81,6 @@ Tailscale aus der Beschreibung streichen. Beides ist ehrlicher als „läuft“ 
 **Risiko ohne:** SSH bleibt öffentlich erreichbar (Port 22). Bei Key-only und UFW ist
 das vertretbar, aber nicht dasselbe wie ein privater Zugang.
 
-## Image-Versionen
-
-**Status:** `npm`, `n8n`, `open-webui`, `searxng`, `paperless` und `ollama` laufen auf
-`latest`. Nur `ghost:6-alpine` und `mysql:8.4` sind gepinnt.
-
-**Warum es zählt:** Ein `docker compose pull` kann eine neue Major-Version ziehen, die
-Datenbank-Migrationen oder Breaking Changes mitbringt. Ohne gepinnte Version gibt es
-keinen reproduzierbaren Rücksprung.
-
-**Prüfen:**
-
-```bash
-sudo docker ps --format '{{.Names}} {{.Image}}'
-```
-
-**Soll-Zustand:** Konkrete Tags oder Digests, Update bewusst und mit Backup. Für NPM
-und Paperless besonders relevant, weil sie Datenbanken mitbringen.
-
-**Risiko ohne:** Ungeplanter Ausfall nach einem Pull; Rollback nur über ein älteres
-Image, das nicht dokumentiert ist.
-
 ## Root-Login
 
 **Status:** `permitrootlogin without-password` – Root darf sich per Key anmelden.
@@ -129,7 +98,8 @@ sshd -T | grep -E 'permitrootlogin|passwordauthentication'
 
 **Soll-Zustand:** `PermitRootLogin no`, ein dauerhafter Admin-Benutzer mit sudo und
 eigener `authorized_keys`. Vorher in einer zweiten Sitzung testen, sonst sperrt man
-sich aus.
+sich aus. Die Umstellung selbst ist ein Ein-Zeilen-Schritt, aber ohne getesteten
+zweiten Zugang nicht verantwortbar.
 
 **Risiko ohne:** Der Root-Key ist ein Single Point of Failure; jede Aktion ist nur als
 root möglich, ohne saubere Zuordnung.
