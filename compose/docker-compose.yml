@@ -18,6 +18,8 @@ services:
     image: ghost:6-alpine
     container_name: kisium-ghost
     init: true
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     depends_on:
       mysql:
@@ -61,6 +63,8 @@ services:
   mysql:
     image: mysql:8.4
     container_name: kisium-mysql
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
