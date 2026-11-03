@@ -139,7 +139,8 @@ Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen B
 
 ## Offene Punkte
 
-- [ ] Tailscale: Server ist eingeloggt (`<TAILSCALE_IP>`); der Windows-Client fehlt noch.
+- [ ] Tailscale: Server und Windows-Client funktionieren; der Linux-Host für den
+      Offsite-Pull fehlt noch.
 - [ ] NPM läuft als root für 80/443; Open WebUI und Ollama sind non-root.
 - [ ] Offsite-Backup und Verschlüsselung der Sicherungen
       (siehe [backup-restore.md](backup-restore.md)).

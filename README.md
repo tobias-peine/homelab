@@ -63,9 +63,9 @@ Recreate verloren. Details, Routen und Belege:
   `cap_drop: ALL`; nur die nötigen Capabilities sind zurückgegeben. Open WebUI und
   Ollama laufen als uid 1000, NPM bleibt als Proxy root für 80/443.
 
-**Noch offen:** NPM läuft als root für 80/443; der Tailscale-Client auf Windows fehlt;
-der Offsite-Timer und die age-Key-Kopie stehen aus; ein serverseitiger Ghost-Ping fehlt.
-Details: [docs/hardening.md](docs/hardening.md) und
+**Noch offen:** NPM läuft als root für 80/443; der Linux-Host für den Offsite-Pull ist
+noch nicht im Tailnet; der Offsite-Timer und die age-Key-Kopie stehen aus; ein
+serverseitiger Ghost-Ping fehlt. Details: [docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 
 ## Backup & Recovery
