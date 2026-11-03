@@ -1,105 +1,144 @@
 # Architektur
 
-Ein einzelner VPS, Docker Compose und ein Reverse Proxy davor. Diese Datei beschreibt,
-was belegt ist – und trennt das von dem, was ich nur aus dem Betrieb weiß.
+Ein VPS, zwei Compose-Projekte, zehn Container. NPM ist die einzige Brücke zwischen
+beiden Netzen. Diese Datei trennt belegte Fakten von offenen Fragen.
 
 ## Überblick
 
 ```mermaid
 flowchart TB
-    subgraph Internet
-        U[Browser]
+    U[Browser] -->|"443/TLS"| NPM["NPM<br/>nginx-proxy-manager"]
+
+    subgraph HS["homeserver_default"]
+        N8N["n8n:5678"]
+        OWUI["open-webui:8080"]
+        SX["searxng:8080"]
+        PL["paperless:8000"]
+        PG[(postgres:5432)]
+        RD[(redis:6379)]
+        OL["ollama:11434"]
     end
 
-    subgraph VPS["VPS (Debian/Ubuntu, 4 vCores, 8 GB RAM)"]
-        P["Reverse Proxy<br/>openresty (NPM)<br/>:80 / :443"]
-        subgraph Docker["Docker – Netz kisium-net"]
-            G["Ghost 6<br/>kisium-ghost<br/>127.0.0.1:2368"]
-            D[("MySQL 8.4<br/>kisium-mysql<br/>:3306")]
-            V1[(ghost_content)]
-            V2[(mysql_data)]
-        end
+    subgraph KI["kisium-net"]
+        G["kisium-ghost:2368"]
+        MY[(kisium-mysql:3306)]
     end
 
-    U -->|"HTTPS 443"| P
-    P -->|"HTTP 127.0.0.1:2368"| G
-    G -->|"TCP 3306"| D
-    G --- V1
-    D --- V2
+    NPM -->|"kisium.de"| G
+    NPM -->|"n8n.<domain>"| N8N
+    NPM -->|"chat.<domain>"| OWUI
+    NPM -->|"search.<domain>"| SX
+    NPM -->|"paperless.<domain>"| PL
+    G --> MY
+    PL --> PG
+    PL --> RD
+    OWUI --> OL
 ```
+
+NPM ist Mitglied beider Netze (`homeserver_default` und `kisium-net`). Deshalb erreicht
+der Proxy sowohl `kisium-ghost` als auch `n8n`, `open-webui`, `searxng` und `paperless`
+über deren Container-Namen.
 
 ## Komponenten
 
-| Komponente | Image / Version | Container | Beleg |
+| Container | Image | Zweck | Netz | Als root? |
+|---|---|---|---|---|
+| `npm` | `jc21/nginx-proxy-manager:latest` | TLS, Routing | beide | ja |
+| `kisium-ghost` | `ghost:6-alpine` | Blog | `kisium-net` | ja (Entrypoint wechselt zu uid 1000) |
+| `kisium-mysql` | `mysql:8.4` | Blog-DB | `kisium-net` | ja |
+| `n8n` | `docker.n8n.io/n8nio/n8n:latest` | Automatisierung | `homeserver_default` | nein (`node`) |
+| `open-webui` | `ghcr.io/open-webui/open-webui:latest` | Chat | `homeserver_default` | ja (`0:0`) |
+| `searxng` | `searxng/searxng:latest` | Metasuche | `homeserver_default` | ja |
+| `paperless` | `ghcr.io/paperless-ngx/paperless-ngx:latest` | Dokumente | `homeserver_default` | ja |
+| `paperless-db` | `postgres:16` | Paperless-DB | `homeserver_default` | ja |
+| `paperless-broker` | `redis:7` | Paperless-Queue | `homeserver_default` | ja |
+| `ollama` | `ollama/ollama:latest` | lokale Modelle | `homeserver_default` | ja |
+
+Die Root-Spalte ist ein Befund, kein Entwurf: `docker inspect … .Config.User` ist bei
+allen außer `n8n` leer, bei `open-webui` sogar explizit `0:0`. Das steht als offener
+Punkt in [hardening-offen.md](hardening-offen.md).
+
+## Netze und Ports
+
+| Port | Dienst | Bindung | Von außen |
 |---|---|---|---|
-| Blog | `ghost:6-alpine` | `kisium-ghost` | `compose/docker-compose.yml` |
-| Datenbank | `mysql:8.4` | `kisium-mysql` | `compose/docker-compose.yml` |
-| Reverse Proxy | openresty (NPM) | `TODO` | HTTP-Header `Server: openresty` am 02.11.2026 |
-| TLS | Let's Encrypt | – | `openssl s_client`, gültig 01.11.2026–30.01.2027 |
+| 80 | NPM | `0.0.0.0` | ja, `301` auf HTTPS |
+| 443 | NPM | `0.0.0.0` | ja, TLS |
+| 81 | NPM-Admin | `127.0.0.1` | nein |
+| 2368 | Ghost | `127.0.0.1` | nein |
+| 5678 | n8n | `127.0.0.1` | nein |
+| 8080 | Open WebUI | `127.0.0.1` | nein |
+| 8888 → 8080 | SearXNG | `127.0.0.1` | nein |
+| 8000 | Paperless | nur Netz | nein |
+| 3306 / 5432 / 6379 / 11434 | MySQL / Postgres / Redis / Ollama | nur Netz | nein |
 
-**Nicht belegt:** Ob der Proxy als Host-Prozess oder als Container läuft. Der Header
-beweist die Software, nicht die Betriebsart. Die Bindung `127.0.0.1:2368` spricht für
-einen Proxy auf dem Host oder für einen Container mit `network_mode: host`.
+UFW lässt eingehend ausschließlich 22, 80 und 443 zu. Alle anderen Dienste sind nur über
+den Proxy oder lokal erreichbar.
 
-## Netzwerk und Ports
+## Routen im Proxy
 
-| Port | Dienst | Bindung | Von außen erreichbar |
-|---|---|---|---|
-| 80 | Proxy | `0.0.0.0` | ja, antwortet mit `301` auf HTTPS |
-| 443 | Proxy | `0.0.0.0` | ja, TLS |
-| 2368 | Ghost | `127.0.0.1` | nein, nur über den Proxy |
-| 3306 | MySQL | nur `kisium-net` | nein, kein Port-Mapping |
+| Host | Upstream | Port |
+|---|---|---|
+| `kisium.de` | `kisium-ghost` | 2368 |
+| `n8n.<DEINE_DOMAIN>` | `n8n` | 5678 |
+| `chat.<DEINE_DOMAIN>` | `open-webui` | 8080 |
+| `search.<DEINE_DOMAIN>` | `searxng` | 8080 |
+| `paperless.<DEINE_DOMAIN>` | `paperless` | 8000 |
 
-Das Docker-Netz `kisium-net` wird in der Compose-Datei explizit benannt. Ghost und MySQL
-sind darüber verbunden; MySQL hat keinen veröffentlichten Port.
-
-**DNS:** Welche A-/AAAA-Records auf den Server zeigen, ist nicht dokumentiert (`TODO`).
-**IPv6:** Ob der Server per IPv6 erreichbar ist, ist nicht dokumentiert (`TODO`).
+Quelle: die fünf `proxy_host/*.conf` im NPM-Container. Die Domains sind hier durch
+Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen Blog-Link.
 
 ## Request-Pfad
 
-1. Der Browser löst die Domain auf die Server-IP auf.
-2. Port 80 antwortet mit `301 Moved Permanently` auf HTTPS.
-3. Der Proxy terminiert TLS und leitet an `127.0.0.1:2368` weiter.
-4. Ghost rendert die Seite und liest Inhalte aus MySQL über `mysql:3306`.
-5. Antwort zurück über den Proxy.
-
-Der Proxy ist damit die einzige Stelle, an der TLS und Weiterleitungen konfiguriert sind.
-Ghost selbst kennt kein TLS.
+1. DNS löst die Domain auf die Server-IP auf.
+2. Port 80 antwortet mit `301` auf HTTPS.
+3. NPM terminiert TLS (Let's Encrypt) und setzt die Proxy-Header.
+4. NPM leitet an den Container-Namen weiter, z. B. `kisium-ghost:2368`.
+5. Ghost liest aus `kisium-mysql:3306`; Paperless aus Postgres/Redis; Open WebUI aus Ollama.
+6. Antwort zurück über NPM.
 
 ## Speicher
 
-| Volume | Inhalt | Sicherung |
-|---|---|---|
-| `ghost_content` | Theme, Bilder, Uploads | Teil des Backups (`TODO`: Skript) |
-| `mysql_data` | Datenbankdateien | Teil des Backups (`TODO`: Dump) |
-
-Server-Platte am 02.11.2026: 192,69 GB gesamt, 25,6 % belegt.
+| Volume | Inhalt |
+|---|---|
+| `kisium_ghost_content` | Theme, Bilder, Uploads |
+| `kisium_mysql_data` | Blog-Datenbank |
+| `homeserver_paperless_data` / `_media` / `_pgdata` / `_redisdata` | Paperless |
+| `homeserver_webui` | Open-WebUI-Daten |
+| `homeserver_ollama` | Modelle |
+| `homeserver_searxng_cache` | Such-Cache |
+| `homeserver_n8n` | n8n-Daten |
 
 ## Host
 
 | | |
 |---|---|
-| Hoster | Webtropia (myLoc) – laut Blogartikel; im Auftrag stand Hetzner (`TODO`: klären) |
-| CPU / RAM / Disk | 4 vCores / 8 GB / 200 GB SSD |
-| OS | Debian oder Ubuntu – nicht belegt; das Banner meldet „ESM not enabled“, was auf Ubuntu hindeutet (`TODO`: `cat /etc/os-release`) |
-| Mailversand | SMTP über Brevo, konfiguriert über `.env` |
+| Hoster | Webtropia (myLoc), KVM |
+| CPU / RAM / Disk | 4 vCores / 8 GB / 193 GB (26 % belegt) |
+| OS | Ubuntu 24.04.5 LTS, Kernel 6.8.0-147-generic |
+| Uptime | 14 Tage (03.11.2026) |
+| RAM / Swap | 4,6 GB belegt, 3,3 GB verfügbar / 2 GB Swap, 50 % belegt |
+| Docker | 29.9.2, Compose v2 |
 
-## Weitere Dienste
+## Belege
 
-Laut Blogartikel und Lebenslauf laufen auf derselben Maschine außerdem n8n, Paperless
-und eine lokale LLM-Umgebung (Ollama + Open WebUI). Für sie gilt:
-
-- Es gibt **keine** Compose-Datei, keine Portangabe und keine Konfiguration in diesem Repo.
-- Ob sie im selben Docker-Netz hängen, ist nicht bekannt.
-- Deshalb stehen sie in der README nur mit `TODO` – nicht mit geratenen Werten.
+| Fakt | Beleg |
+|---|---|
+| Container, Images, Ports | `docker ps`, `docker inspect` |
+| Netze und Routen | `docker network inspect`, NPM `proxy_host/*.conf` |
+| SSH-Konfiguration | `sshd -T` |
+| Firewall | `ufw status verbose` |
+| Updates | `systemctl is-active/is-enabled unattended-upgrades` |
+| OS/Kernel | `hostnamectl`, `uname -r` |
+| Restore-Tests | `/var/log/restore-test.log`, eigener Lauf am 03.11.2026 |
 
 ## Offene Punkte
 
-- [ ] Proxy-Konfiguration exportieren (NPM: Proxy Hosts → Advanced, oder
-      `/data/nginx/proxy_host/*.conf` im Container)
-- [ ] Betriebsart des Proxys dokumentieren (Host oder Container)
-- [ ] DNS-Records (A, AAAA, MX, TXT) dokumentieren
-- [ ] OS und Kernel-Version festhalten
-- [ ] n8n, Paperless, Ollama/Open WebUI mit Ports und Netzen ergänzen
-- [ ] Hoster klären: Webtropia oder Hetzner
+- [ ] Tailscale ist **nicht** installiert (`command -v tailscale` leer). Der Auftrag
+      nannte es; entweder nachinstallieren oder aus der Beschreibung streichen.
+- [ ] Fail2ban ist nicht aktiv. SSH ist Key-only, daher optional – aber ungeprüft.
+- [ ] HSTS fehlt. NPM hat zwar eine `map $scheme $hsts_header`, aber kein
+      `add_header Strict-Transport-Security`.
+- [ ] Mehrere Images laufen auf `latest` (NPM, n8n, Open WebUI, SearXNG, Paperless,
+      Ollama). Ein ungeprüfter Pull kann den Stack brechen.
+- [ ] Container-Härtung: überwiegend root, kein `cap_drop`, kein `no-new-privileges`.

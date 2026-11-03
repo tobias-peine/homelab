@@ -1,45 +1,58 @@
 # Reverse Proxy (NPM)
 
-Die sanitisierte Proxy-Konfiguration gehört hierher. Sie liegt noch nicht vor – dieser
-Ordner ist ein Platzhalter mit dem, was bekannt ist, und dem Weg zum Export.
+Der Proxy ist ein Container (`jc21/nginx-proxy-manager`), kein Host-Prozess. Er hängt in
+beiden Netzen – `homeserver_default` und `kisium-net` – und ist damit die einzige Brücke
+zwischen den Compose-Projekten.
 
-## Bekannt
+## Routen
 
-| Punkt | Wert | Beleg |
-|---|---|---|
-| Software | openresty | HTTP-Header `Server: openresty` |
-| Produkt | Nginx Proxy Manager | Blogartikel |
-| Ports | 80, 443 | von außen erreichbar |
-| TLS | Let's Encrypt, gültig bis 30.01.2027 | `openssl s_client` |
-| HTTP | `301` auf HTTPS | `curl -sSI http://…` |
-| Betriebsart | Host oder Container? | **nicht belegt** |
+| Host | Upstream | Port | Netz |
+|---|---|---|---|
+| `kisium.de` | `kisium-ghost` | 2368 | `kisium-net` |
+| `n8n.<DEINE_DOMAIN>` | `n8n` | 5678 | `homeserver_default` |
+| `chat.<DEINE_DOMAIN>` | `open-webui` | 8080 | `homeserver_default` |
+| `search.<DEINE_DOMAIN>` | `searxng` | 8080 | `homeserver_default` |
+| `paperless.<DEINE_DOMAIN>` | `paperless` | 8000 | `homeserver_default` |
 
-## Fehlt
+Quelle: fünf `proxy_host/*.conf` im Container. Die Domains sind hier durch Platzhalter
+ersetzt.
 
-- Proxy-Host für die Domain: `server_name`, `upstream`, TLS-Zertifikatspfade
-- Advanced Config: HSTS, Security-Header, `client_max_body_size`, WebSocket-Header
-- Rate-Limits, falls konfiguriert
-- Zugriffs- und Fehler-Logs (Pfad, Rotation)
-- Ob der Proxy im selben Docker-Netz hängt oder auf dem Host läuft
+## Was der Proxy macht
+
+- TLS-Terminierung mit Let's Encrypt (Zertifikat gültig bis 30.01.2027)
+- `301` von HTTP auf HTTPS
+- WebSocket-Header für n8n und Open WebUI (`Upgrade`, `Connection`)
+- Weiterleitung an Container-Namen, nicht an Host-Ports
+
+## HSTS: definiert, aber nicht gesendet
+
+Die generierten Configs enthalten:
+
+```nginx
+map $scheme $hsts_header {
+    https   "max-age=63072000; preload";
+}
+```
+
+Ein `add_header Strict-Transport-Security …` fehlt jedoch. `curl -sSI` am 03.11.2026
+zeigt keinen HSTS-Header. Der `map`-Block ist damit toter Code.
+
+**Vorschlag (nicht produktiv):** in NPM unter „Advanced“ pro Host oder global in einer
+Custom Config:
+
+```nginx
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+```
 
 ## Export
 
-**Variante A – NPM-Oberfläche:** Hosts → Proxy Hosts → Eintrag bearbeiten → Reiter
-„Advanced“. Inhalt kopieren.
-
-**Variante B – Dateisystem:** Im NPM-Container liegen die Hosts unter
-`/data/nginx/proxy_host/*.conf`, eigene Includes unter `/data/nginx/custom/*.conf`.
-
-Vor dem Einchecken redigieren:
-
-- `server_name` → `<DEINE_DOMAIN>`
-- `proxy_pass` → `<INTERNE_ADRESSE>:<PORT>`
-- Zertifikatspfade → `<PFAD>`
-- alles, was nach Token, Passwort oder API-Key aussieht
+Die vollständigen Configs liegen im Container unter `/data/nginx/proxy_host/*.conf`
+(Hosts) und `/data/nginx/custom/*.conf` (eigene Includes). Vor dem Einchecken redigieren:
+`server_name`, `proxy_pass`, Zertifikatspfade.
 
 ## TODO
 
-- [ ] Proxy-Host exportieren und als `nginx/proxy-host.conf` ablegen
-- [ ] Advanced Config separat als `nginx/advanced.conf` ablegen
-- [ ] Betriebsart (Host/Container) dokumentieren
-- [ ] Logpfade und Rotation ergänzen
+- [ ] Eine sanitisierte `proxy-host.conf` als Beispiel ablegen (bisher nur die Tabelle)
+- [ ] HSTS ergänzen und mit `curl -sSI` nachweisen
+- [ ] NPM-Image pinnen (`latest` → konkreter Tag)
+- [ ] Prüfen, ob die `map`-Zeile nach einem HSTS-Update noch gebraucht wird

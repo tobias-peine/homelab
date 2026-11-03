@@ -1,88 +1,110 @@
 # Hardening
 
-Jede Maßnahme mit Begründung, Umsetzung und dem Risiko, wenn sie fehlt. Diese Datei
-enthält nur, was durch Compose-Datei oder HTTP-Header belegt ist. Die offenen Punkte
-stehen in [hardening-offen.md](hardening-offen.md).
+Stand 03.11.2026, geprüft auf dem laufenden Server. Jede Maßnahme mit Begründung,
+Umsetzung und dem Risiko, wenn sie fehlt. Offene Punkte: [hardening-offen.md](hardening-offen.md).
 
-## 1. Ghost nur auf Loopback
+## 1. SSH nur mit Schlüssel
 
-**Was:** Der Container veröffentlicht Port 2368 ausschließlich auf `127.0.0.1`.
+**Was:** Passwort-Login ist aus, Root-Login nur per Key, maximal sechs Versuche.
 
-**Warum:** Der einzige Weg zum Blog führt über den Proxy. Dort enden TLS und die
-Weiterleitungsregeln. Eine Bindung an `0.0.0.0` würde Ghost zusätzlich direkt und ohne
-TLS erreichbar machen.
+**Warum:** Passwörter sind brute-forcebar; Bots scannen IPv4-Bereiche permanent. Ein
+Key lässt sich nicht erraten.
+
+**Wie:** `sshd -T` am 03.11.2026:
+
+```
+passwordauthentication no
+kbdinteractiveauthentication no
+pubkeyauthentication yes
+permitrootlogin without-password
+maxauthtries 6
+```
+
+**Risiko ohne:** Automatisierte Login-Versuche, Credential-Stuffing, im schlimmsten Fall
+ein Shell-Zugang als root.
+
+## 2. Firewall: eingehend nur 22, 80, 443
+
+**Was:** UFW ist aktiv, Default eingehend `deny`, ausgehend `allow`.
+
+**Warum:** Jeder offene Port ist eine Angriffsfläche. Der Proxy braucht 80/443, SSH
+braucht 22 – alles andere hat keinen Grund, von außen erreichbar zu sein.
 
 **Wie:**
 
-```yaml
-ports:
-  - "127.0.0.1:2368:2368"
+```
+Status: active
+Default: deny (incoming), allow (outgoing), deny (routed)
+22/tcp      ALLOW IN    Anywhere
+80,443/tcp  ALLOW IN    Anywhere
 ```
 
-**Risiko ohne:** Der Blog wäre unter `http://<SERVER_IP>:2368` erreichbar – ohne TLS,
-ohne Proxy-Header, ohne die Möglichkeit, Zugriffe am Proxy zu filtern.
+**Risiko ohne:** Dienste, die versehentlich auf `0.0.0.0` lauschen, sind sofort im
+Internet sichtbar – auch wenn sie es nicht sollen.
 
-## 2. Kein veröffentlichter Datenbank-Port
+## 3. Automatische Sicherheitsupdates
 
-**Was:** MySQL hat kein `ports:`-Mapping und ist nur im Netz `kisium-net` erreichbar.
+**Was:** `unattended-upgrades` ist aktiv und enabled; automatische Neustarts sind aus.
 
-**Warum:** Eine offene Datenbank ist ein direktes Angriffsziel. Automatisierte Scans
-suchen permanent nach 3306. Ohne Port gibt es keinen Netzweg von außen.
+**Warum:** Ein öffentlich erreichbarer Proxy und ein Webserver sammeln bekannte Lücken.
+Updates von Hand werden vergessen; automatische Neustarts würden den Blog ungeplant
+unterbrechen.
 
 **Wie:**
 
-```yaml
-# mysql: kein ports:-Block, nur networks: [kisium]
-networks:
-  kisium:
-    name: kisium-net
+```
+systemctl is-active unattended-upgrades   → active
+systemctl is-enabled unattended-upgrades  → enabled
+Unattended-Upgrade::Automatic-Reboot "false"
 ```
 
-**Risiko ohne:** Brute-Force auf die Datenbank, Datenabfluss oder Verschlüsselung per
-Ransomware – ohne dass der Proxy etwas davon sieht.
+**Risiko ohne:** Eine bekannte Lücke bleibt offen, bis jemand von Hand updatet.
 
-## 3. Zugangsdaten nur in `.env`, Start bricht bei Lücke ab
+## 4. Proxy-Admin nur auf Loopback
 
-**Was:** Alle Passwörter und Zugangsdaten kommen aus Umgebungsvariablen; die
-Compose-Datei enthält keine Werte.
+**Was:** Die NPM-Oberfläche lauscht auf `127.0.0.1:81`, nicht auf `0.0.0.0`.
 
-**Warum:** Kein Secret im Repository, keine versehentlich leeren Passwörter. Die
-Schreibweise `${MYSQL_PASSWORD:?…}` erzwingt einen Wert – Compose bricht sonst ab.
+**Warum:** Das Admin-Interface ist der mächtigste Teil des Stacks – wer dort hineinkommt,
+kann Routen und Zertifikate ändern. Es braucht keinen öffentlichen Port.
 
-**Wie:**
+**Wie:** Im Compose: `"127.0.0.1:81:81"`.
 
-```yaml
-database__connection__password: ${MYSQL_PASSWORD:?MYSQL_PASSWORD fehlt in .env}
-```
+**Risiko ohne:** Login-Oberfläche im Internet, erreichbar für jeden Scanner.
 
-**Risiko ohne:** Ein leeres oder Standard-Passwort läuft unbemerkt weiter; Secrets
-landen im Git-Verlauf und sind auch nach dem Löschen dort noch auffindbar.
+## 5. Datenbanken ohne öffentlichen Port
 
-## 4. TLS am Proxy, HTTP wird umgeleitet
+**Was:** MySQL und Postgres haben kein `ports:`-Mapping; sie sind nur in ihren
+Docker-Netzen erreichbar.
 
-**Was:** Port 80 antwortet mit `301` auf HTTPS; das Zertifikat ist von Let's Encrypt
-und am 03.11.2026 gültig bis 30.01.2027.
+**Warum:** Eine offene Datenbank ist ein direktes Ziel. Ohne Port gibt es keinen Netzweg
+von außen.
+
+**Wie:** `docker ps` zeigt für `kisium-mysql` nur `3306/tcp`, für `paperless-db` nur
+`5432/tcp` – ohne Host-Bindung.
+
+**Risiko ohne:** Brute-Force, Datenabfluss, Ransomware – am Proxy vorbei.
+
+## 6. TLS am Proxy, HTTP wird umgeleitet
+
+**Was:** Port 80 antwortet mit `301` auf HTTPS; das Let's-Encrypt-Zertifikat ist am
+03.11.2026 gültig bis 30.01.2027.
 
 **Warum:** Ohne TLS gehen Session-Cookies und Login-Daten im Klartext über das Netz.
-Der Redirect verhindert, dass jemand versehentlich die HTTP-Variante benutzt.
 
-**Wie:** Die Konfiguration liegt im Proxy, nicht im Repo (`TODO`: Export nach
-[nginx/](../nginx/)). Nachweis:
+**Wie:** NPM terminiert TLS; die Zertifikate werden automatisch erneuert. Nachweis:
 
 ```bash
-curl -sSI http://<DEINE_DOMAIN> | head -1     # HTTP/1.1 301 Moved Permanently
+curl -sSI http://<DEINE_DOMAIN> | head -1     # 301 Moved Permanently
 ```
 
-**Risiko ohne:** Mitlesen und Manipulieren der Verbindung; Browser warnen, Suchmaschinen
-stufen die Seite ab.
+**Risiko ohne:** Mitlesen und Manipulieren der Verbindung; Browser warnen.
 
-## 5. Keine Daten an Dritte
+## 7. Keine Daten an Dritte
 
 **Was:** Gravatar, Update-Ping und RPC sind in Ghost abgeschaltet.
 
 **Warum:** Diese Funktionen senden Anfragen an externe Server. Für einen Blog, der
-nichts trackt, sind sie ein unnötiger Datenabfluss – Gravatar verrät etwa die
-E-Mail-Hashes der Kommentierenden.
+nichts trackt, sind sie ein unnötiger Datenabfluss.
 
 **Wie:**
 
@@ -94,35 +116,36 @@ privacy__useUpdateCheck: "false"
 
 **Risiko ohne:** Besucherdaten gehen an Dritte, ohne dass es im Blog erwähnt wird.
 
-## 6. Healthcheck und definierte Startreihenfolge
+## 8. Healthcheck ohne Zombie-Leck
 
-**Was:** MySQL hat einen Healthcheck, Ghost wartet auf `service_healthy`.
+**Was:** Der Ghost-Check prüft den Port mit `nc -z`; der Container läuft mit `init: true`.
 
-**Warum:** Ohne diese Bedingung startet Ghost, bevor die Datenbank antwortet, und läuft
-in eine Neustart-Schleife. Das ist kein Sicherheits-, sondern ein Verfügbarkeitsproblem –
-aber im Betrieb der Unterschied zwischen „läuft“ und „läuft nach jedem Reboot“.
+**Warum:** `wget --spider` folgte dem `301` von `http://127.0.0.1:2368` auf
+`https://127.0.0.1:2368` und sprach TLS mit einem HTTP-Port. Jeder Fehlversuch
+hinterließ einen `ssl_client`-Zombie; nach elf Stunden waren es 1.354. `init: true`
+sorgt dafür, dass der Container Kindprozesse einsammelt.
 
 **Wie:**
 
 ```yaml
-depends_on:
-  mysql:
-    condition: service_healthy
+init: true
+healthcheck:
+  test: ["CMD", "nc", "-z", "127.0.0.1", "2368"]
 ```
 
-**Risiko ohne:** Nach einem Neustart startet der Blog erst nach mehreren Fehlversuchen
-oder gar nicht.
+**Risiko ohne:** Der Container gilt dauerhaft als `unhealthy`, die Prozessliste läuft
+voll, und irgendwann fehlen PIDs oder Speicher.
 
 ## Offene Punkte
 
 | Punkt | Status | Details |
 |---|---|---|
-| HSTS | Header fehlt (03.11.2026) | [hardening-offen.md](hardening-offen.md#hsts-fehlt) |
-| SSH-Härtung | nicht belegt | [hardening-offen.md](hardening-offen.md#ssh-härtung) |
-| Firewall | nicht belegt | [hardening-offen.md](hardening-offen.md#firewall) |
-| Automatische Updates | nicht belegt | [hardening-offen.md](hardening-offen.md#automatische-updates) |
-| Container-Härtung | nicht geprüft | [hardening-offen.md](hardening-offen.md#container-härtung) |
-| Tailscale / SearXNG | in keiner Quelle belegt | [hardening-offen.md](hardening-offen.md#tailscale-und-searxng) |
+| Container-Härtung | alle root, kein `cap_drop` | [hardening-offen.md](hardening-offen.md#container-härtung) |
+| HSTS | Header fehlt | [hardening-offen.md](hardening-offen.md#hsts-fehlt) |
+| Fail2ban | nicht aktiv | [hardening-offen.md](hardening-offen.md#fail2ban) |
+| Tailscale | nicht installiert | [hardening-offen.md](hardening-offen.md#tailscale) |
+| Image-Versionen | mehrere `latest` | [hardening-offen.md](hardening-offen.md#image-versionen) |
+| Root-Login | per Key erlaubt | [hardening-offen.md](hardening-offen.md#root-login) |
 
-Grundsatz: Keine Maßnahme ist „empfohlen, weil Best Practice“. Jede Zeile hat entweder
-einen Beleg aus der Konfiguration oder steht ausdrücklich unter „offen“.
+Grundsatz: Keine Maßnahme ist „empfohlen, weil Best Practice“. Jede Zeile hat einen
+Beleg vom Server oder steht ausdrücklich unter „offen“.
