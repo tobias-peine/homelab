@@ -1,12 +1,15 @@
-# kisium.de – Ghost mit MySQL
+# Ghost mit MySQL – sanitisierte Fassung des produktiven Stacks.
 #
 # Alle Geheimnisse kommen aus .env (siehe .env.example).
-# Aufruf:  docker compose up -d
+# Aufruf:  docker compose --env-file .env up -d
 #
 # Absichtliche Entscheidungen:
-#   * Ghost lauscht nur auf 127.0.0.1 – der Reverse Proxy auf dem Host ist der einzige Weg nach außen.
+#   * Ghost lauscht nur auf 127.0.0.1 – der Reverse Proxy ist der einzige Weg nach außen.
 #   * MySQL hat einen Healthcheck; Ghost startet erst, wenn die Datenbank antwortet.
 #   * Beide Dienste haben restart: unless-stopped, damit ein Neustart des Servers reicht.
+#
+# Sanitisiert: Domain und Absenderadresse sind Platzhalter in .env. Service- und
+# Container-Namen entsprechen dem produktiven Stand.
 
 name: kisium
 
@@ -19,7 +22,7 @@ services:
       mysql:
         condition: service_healthy
     environment:
-      url: ${GHOST_URL:-https://kisium.de}
+      url: ${GHOST_URL:?GHOST_URL fehlt in .env}
       NODE_ENV: production
       database__client: mysql
       database__connection__host: mysql
@@ -33,7 +36,7 @@ services:
       mail__options__secure: ${MAIL_SECURE:-false}
       mail__options__auth__user: ${MAIL_USER:-}
       mail__options__auth__pass: ${MAIL_PASSWORD:-}
-      mail__from: ${MAIL_FROM:-Kisium <hallo@kisium.de>}
+      mail__from: ${MAIL_FROM:?MAIL_FROM fehlt in .env}
       # Keine Daten an Dritte: kein Gravatar, kein Update-Ping, kein RPC
       privacy__useGravatar: "false"
       privacy__useRpcPing: "false"
