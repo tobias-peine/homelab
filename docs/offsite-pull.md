@@ -110,8 +110,8 @@ Der Rechner muss laufen. Ist er aus, wird nicht gezogen und nicht alarmiert.
 
 ## Grenzen
 
-- **Kein serverseitiger Ping.** Die Alterprüfung läuft im Pull-Skript; sie kann nur
-  alarmieren, wenn der Rechner läuft.
+- **Serverseitiger Check läuft.** `/opt/backups/check-ghost-backup.sh` prüft täglich um
+  05:00 das Ghost-Backup-Alter und alarmiert per ntfy. Der Pull prüft zusätzlich.
 - **Der private age-Key ist ein Single Point of Failure.** Passwortmanager + ein
   zweiter sicherer Ort.
 - **Kein inkrementelles Backup.** Jeder Lauf zieht ein vollständiges Tar; bei ~150 MB

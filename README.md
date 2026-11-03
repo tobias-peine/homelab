@@ -65,8 +65,7 @@ Recreate verloren. Details, Routen und Belege:
   Ollama laufen als uid 1000, NPM bleibt als Proxy root für 80/443.
 
 **Noch offen:** NPM läuft als root für 80/443; der Offsite-Timer und die age-Key-Kopie
-stehen aus; ein serverseitiger Ghost-Ping fehlt. Details:
-[docs/hardening.md](docs/hardening.md) und
+stehen aus. Details: [docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 
 ## Backup & Recovery

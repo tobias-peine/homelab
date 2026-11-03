@@ -98,6 +98,10 @@ Restore-Test erfolgreich in 47 Sekunden
 
 Keine Reste: keine Testcontainer, -volumes oder -netze nach dem Lauf.
 
+**Monitoring:** `/opt/backups/check-ghost-backup.sh` läuft täglich um 05:00. Es prüft das
+neueste `ghost-db-*.sql.gz`; bei mehr als 26 Stunden oder fehlendem Backup sendet es eine
+ntfy-Nachricht. Test am 03.11.: normal `ok (8h)`, künstlich 72 h → Alarm.
+
 ## Skripte im Repo
 
 Die Skripte in [`scripts/`](../scripts/) sind die portable, getestete Fassung:
@@ -107,6 +111,7 @@ Die Skripte in [`scripts/`](../scripts/) sind die portable, getestete Fassung:
 | `backup.sh` | prüft gzip und `CREATE TABLE`, schreibt SHA-256, nutzt `--user` für den Tar |
 | `restore-test.sh` | isoliertes Projekt, Datenvergleich mit der Quelle, Aufräumen |
 | `health-check.sh` | Container, HTTP, Platte, Zombies, Swap |
+| `check-backup-age.sh` | prüft das Ghost-Backup-Alter, ntfy bei > 26 h |
 
 Die Produktionsskripte unter `/opt/` sind älter und einfacher. Der Ghost-Backup dort
 prüft den Dump nicht – das Repo-Skript schon.
@@ -139,7 +144,6 @@ vor dem Editieren eine Kopie ziehen.
 
 - [ ] systemd-Timer auf dem Linux-Rechner einrichten (Skript und Units liegen bereit)
 - [ ] `age`-Private-Key zusätzlich in den Passwortmanager kopieren
-- [ ] Monitoring für das Ghost-Backup: ntfy im Pull-Skript, serverseitiger Ping fehlt
 - [ ] RPO/RTO festlegen: wie viel Datenverlust ist akzeptabel, wie lange darf der Restore dauern?
 - [ ] Restore auf einem **anderen** Host testen, nicht nur auf demselben
 - [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version laufen lassen, nicht `latest`
