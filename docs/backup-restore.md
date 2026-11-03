@@ -11,7 +11,9 @@ gegen eine Wegwerf-Instanz getestet – nicht gegen die Produktion.
 | Ghost | täglich 03:00 | MySQL-Dump, `ghost_content` | 14 Tage | manuell / `scripts/restore-test.sh` |
 
 Beide Sicherungen liegen lokal unter `/opt/backups/paperless` bzw. `/opt/kisium/backups`.
-Es gibt **keine** Offsite-Kopie. Damit ist die 3-2-1-Regel nicht erfüllt.
+Für Offsite zieht der PC die Archive per [`scripts/pull-backups.ps1`](../scripts/pull-backups.ps1)
+und verschlüsselt sie mit `age`. Das Skript liegt bereit; der erste Lauf auf dem PC steht
+noch aus. Details: [offsite-pull.md](offsite-pull.md).
 
 ## Paperless
 
@@ -134,9 +136,9 @@ vor dem Editieren eine Kopie ziehen.
 
 ## Offene Punkte
 
-- [ ] Offsite-Kopie (zweiter Host oder Object Storage) – aktuell nur lokal
-- [ ] Verschlüsselung der Sicherungen; das Paperless-Tarball enthält `.env`
-- [ ] Monitoring für das Ghost-Backup (Healthchecks-Ping wie bei Paperless)
+- [ ] Offsite-Pull auf dem PC einrichten und einmal laufen lassen
+- [ ] `age`-Key auf dem PC erzeugen; privaten Key in den Passwortmanager
+- [ ] Monitoring für das Ghost-Backup: ntfy im Pull-Skript, serverseitiger Ping fehlt
 - [ ] RPO/RTO festlegen: wie viel Datenverlust ist akzeptabel, wie lange darf der Restore dauern?
 - [ ] Restore auf einem **anderen** Host testen, nicht nur auf demselben
 - [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version laufen lassen, nicht `latest`

@@ -63,8 +63,8 @@ Recreate verloren. Details, Routen und Belege:
   `cap_drop: ALL`; nur die nötigen Capabilities sind zurückgegeben. Open WebUI und
   Ollama laufen als uid 1000, NPM bleibt als Proxy root für 80/443.
 
-**Noch offen:** NPM läuft als root für 80/443; Tailscale ist auf dem Server aktiv, aber
-der Windows-Client fehlt; Offsite-Backup und Verschlüsselung; Monitoring-Ping für Ghost.
+**Noch offen:** NPM läuft als root für 80/443; der Tailscale-Client auf Windows fehlt;
+der Offsite-Pull muss auf dem PC einmal laufen; ein serverseitiger Ghost-Ping fehlt.
 Details: [docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 
@@ -75,7 +75,10 @@ Ghost seit dem 03.11. um 03:00 (DB-Dump, Content-Volume). Beide Sicherungen werd
 täglich in ein separates Compose-Projekt zurückgespielt: Paperless am 03.11. mit 150
 Dokumenten, 3 Benutzern, 56 Tags und 443 Media-Dateien (HTTP 302), Ghost mit 10
 Beiträgen, 1 Benutzer und 129 Einstellungen (HTTP 200, 47 Sekunden). Ablauf und die
-gefundenen Fehler: [docs/backup-restore.md](docs/backup-restore.md).
+gefundenen Fehler: [docs/backup-restore.md](docs/backup-restore.md). Für Offsite zieht
+der PC die Archive per [`scripts/pull-backups.ps1`](scripts/pull-backups.ps1) und
+verschlüsselt sie mit `age`; der erste Lauf steht aus
+([docs/offsite-pull.md](docs/offsite-pull.md)).
 
 ## Betrieb
 
@@ -128,4 +131,5 @@ neuen Digest wählen, `docker compose up -d`, Health prüfen. Vorher sichern.
 - [docs/hardening.md](docs/hardening.md) – umgesetzte Maßnahmen mit Begründung
 - [docs/hardening-offen.md](docs/hardening-offen.md) – offene Punkte und Prüfwege
 - [docs/backup-restore.md](docs/backup-restore.md) – Backup, Restore-Tests, Fehler
+- [docs/offsite-pull.md](docs/offsite-pull.md) – Offsite-Pull auf den PC, age, ntfy
 - [docs/lessons-learned.md](docs/lessons-learned.md) – Fehler und was daraus wurde
