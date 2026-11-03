@@ -1,3 +1,13 @@
+# Secrets
 .env
-*.log
+*.env
+!.env.example
+
+# Datenbank-Dumps und Backups
+*.sql
+*.sql.gz
+*.dump
 backups/
+
+# Logs
+*.log
