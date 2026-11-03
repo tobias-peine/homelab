@@ -5,6 +5,7 @@
 | [`backup.sh`](backup.sh) | MySQL-Dump und Content-Volume sichern, prüfen, aufbewahren | getestet 03.11.2026 |
 | [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 47 s |
 | [`health-check.sh`](health-check.sh) | Container, HTTP, Platte, Zombies, Swap prüfen | getestet 03.11.2026 |
+| [`pull-backups.ps1`](pull-backups.ps1) | Offsite-Pull auf den PC, age-Verschlüsselung, Ghost-Alter prüfen | Skript fertig, Lauf offen |
 
 ## In der Produktion
 
@@ -81,6 +82,17 @@ Prüft Container-Status und Health, HTTP-Code, Plattenbelegung, Zombie-Prozesse 
 Exit 0 = ok (auch mit Warnungen), Exit 1 = harter Fehler. `LC_ALL=C` ist nötig, weil die
 Swap-Zeile je nach Locale „Auslager:“ heißt.
 
+## pull-backups.ps1 (Windows)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\pull-backups.ps1 -Server <host>
+```
+
+Zieht Paperless- und Ghost-Backups als ein Tar auf den PC, prüft das Alter des
+Ghost-Backups, verschlüsselt lokal mit `age` und schickt bei Fehlern einen ntfy-Ping.
+Der PC zieht – der Server braucht keinen Zugang zum PC. Details:
+[docs/offsite-pull.md](../docs/offsite-pull.md).
+
 ## Anforderungen
 
 - `set -Eeuo pipefail` – ein Fehler beendet den Lauf.
@@ -91,7 +103,7 @@ Swap-Zeile je nach Locale „Auslager:“ heißt.
 
 ## Offen
 
-- [ ] Offsite-Kopie der Sicherungen
-- [ ] Verschlüsselung (das Paperless-Tarball enthält `.env`)
-- [ ] Monitoring-Ping für das Ghost-Backup
+- [ ] Offsite-Pull auf dem PC einrichten und einmal laufen lassen
+- [ ] `age`-Key auf dem PC erzeugen, privaten Key in den Passwortmanager
+- [ ] Ghost-Monitoring serverseitig (ntfy im Pull-Skript vorhanden)
 - [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version
