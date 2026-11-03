@@ -6,6 +6,7 @@
 | [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 47 s |
 | [`health-check.sh`](health-check.sh) | Container, HTTP, Platte, Zombies, Swap prüfen | getestet 03.11.2026 |
 | [`pull-backups.sh`](pull-backups.sh) | Offsite-Pull auf den Linux-Rechner, age, Ghost-Alter prüfen | getestet 03.11.2026, 957 MB |
+| [`check-backup-age.sh`](check-backup-age.sh) | Ghost-Backup-Alter prüfen, bei > 26 h per ntfy alarmieren | getestet 03.11.2026 |
 
 ## In der Produktion
 
@@ -14,6 +15,7 @@
 | Ghost-Backup | `/opt/kisium/backup.sh` | täglich 03:00 | MySQL-Dump + `ghost_content` |
 | Paperless-Backup | `/opt/backups/paperless-backup.sh` | täglich 03:30 | Postgres, Data, Media, Export, `.env` |
 | Paperless-Restore-Test | `/opt/backups/run-restore-test.sh` | täglich 04:00 | Backup in isoliertes Projekt, Prüfungen, Healthchecks-Ping |
+| Ghost-Alterscheck | `/opt/backups/check-ghost-backup.sh` | täglich 05:00 | Backup-Alter, ntfy bei > 26 h |
 | Ghost-Restore-Test | `scripts/restore-test.sh` | manuell | echte Sicherung in isoliertes Projekt |
 
 Die Produktionsskripte sind älter und einfacher als die Repo-Fassung. Der Ghost-Backup
@@ -104,6 +106,18 @@ systemctl --user daemon-reload
 systemctl --user enable --now homelab-backup.timer
 ```
 
+## check-backup-age.sh
+
+```bash
+./scripts/check-backup-age.sh
+BACKUP_DIR=/opt/kisium/backups MAX_AGE_H=26 ./scripts/check-backup-age.sh
+```
+
+Prüft das neueste `ghost-db-*.sql.gz`; bei mehr als 26 Stunden oder fehlendem Backup
+sendet es eine ntfy-Nachricht und endet mit 1. Auf dem Server liegt es als
+`/opt/backups/check-ghost-backup.sh`, Cron 05:00. Test am 03.11.: normal `ok (8h)`,
+künstlich 72 h → Alarm.
+
 ## Anforderungen
 
 - `set -Eeuo pipefail` – ein Fehler beendet den Lauf.
@@ -116,5 +130,4 @@ systemctl --user enable --now homelab-backup.timer
 
 - [ ] systemd-Timer auf dem Linux-Rechner installieren
 - [ ] `age`-Private-Key zusätzlich in den Passwortmanager legen
-- [ ] Ghost-Monitoring serverseitig (ntfy im Pull-Skript vorhanden)
 - [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version
