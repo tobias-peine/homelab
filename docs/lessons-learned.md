@@ -18,10 +18,17 @@ Besitzer der Dateien, nicht den Benutzer des laufenden Prozesses.
 docker inspect <container> --format '{{.Config.User}}'   # leer = root
 ```
 
+Beim Nachrüsten von `cap_drop: ALL` kam die nächste Eigenheit: Open WebUI konnte seine
+Chroma-Datenbank nicht mehr schreiben („attempt to write a readonly database“). Der
+Prozess läuft als root, aber ohne `DAC_OVERRIDE` gelten die Dateirechte. Erst
+`cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]` löste es. `cap_drop` ist kein Schalter, sondern
+eine Rechnung: Was der Entrypoint zum Starten und Benutzerwechseln braucht, muss
+zurückgegeben werden.
+
 **Mitgenommen:** Ein leeres `Config.User` ist keine Aussage darüber, dass sich niemand
 Gedanken gemacht hat – es ist die Aussage, dass der Default greift. Defaults muss man
-nachsehen, nicht annehmen. Auf dem aktuellen Server sind fast alle Container noch root;
-das steht als offener Punkt in [hardening-offen.md](hardening-offen.md).
+nachsehen, nicht annehmen. Auf dem aktuellen Server laufen Open WebUI, NPM und Ollama
+noch als root; das steht als offener Punkt in [hardening-offen.md](hardening-offen.md).
 
 ## 2. Der Dienst war erreichbar – nur nicht von außen
 

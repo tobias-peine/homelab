@@ -43,9 +43,9 @@ Recreate verloren. Details, Routen und Belege:
 
 ## Sicherheit
 
-- **SSH nur mit Schlüssel.** `sshd -T` am 03.11.2026: `passwordauthentication no`,
-  `permitrootlogin without-password`, `maxauthtries 6`. Ein Passwort-Login ist nicht
-  möglich; der Root-Login nur per Key.
+- **SSH nur mit Schlüssel, kein Root-Login.** `sshd -T` am 03.11.2026:
+  `passwordauthentication no`, `permitrootlogin no`, `maxauthtries 6`. Der Zugang läuft
+  über `admin` mit sudo; Fail2ban bewacht den `sshd`-Jail.
 - **Firewall standardmäßig dicht.** UFW ist aktiv, eingehend `deny`, offen sind nur
   22/tcp sowie 80/443/tcp – der Rest wird verworfen.
 - **Sicherheitsupdates laufen automatisch.** `unattended-upgrades` ist aktiv und
@@ -57,12 +57,13 @@ Recreate verloren. Details, Routen und Belege:
 - **TLS endet am Proxy, HTTP wird umgeleitet.** Let's-Encrypt-Zertifikat, gültig bis
   30.01.2027; `http://` antwortet mit `301`, HSTS ist auf allen fünf Hosts gesetzt.
 - **Keine Daten an Dritte.** Gravatar, Update-Ping und RPC sind in Ghost abgeschaltet.
-- **Healthcheck ohne Zombie-Leck.** Der Ghost-Check nutzt `nc -z` statt `wget`; `init: true`
-  sorgt dafür, dass Kindprozesse eingesammelt werden. Vorher standen 1.354 Zombies auf
-  dem Server. Alle Container laufen zusätzlich mit `no-new-privileges`.
+- **Healthcheck und Laufzeitrechte.** Der Ghost-Check nutzt `nc -z` statt `wget`;
+  `init: true` sorgt dafür, dass Kindprozesse eingesammelt werden. Vorher standen 1.354
+  Zombies auf dem Server. Alle Container laufen mit `no-new-privileges` und
+  `cap_drop: ALL`; nur die nötigen Capabilities sind zurückgegeben.
 
-**Noch offen:** Container-Härtung über `no-new-privileges` hinaus (`cap_drop`, non-root),
-Fail2ban, Tailscale (nicht installiert), Root-Login auf `no`. Details:
+**Noch offen:** non-root für Open WebUI, NPM und Ollama; Tailscale ist installiert, aber
+nicht eingeloggt; Offsite-Backup und Verschlüsselung; Monitoring-Ping für Ghost. Details:
 [docs/hardening.md](docs/hardening.md) und
 [docs/hardening-offen.md](docs/hardening-offen.md).
 

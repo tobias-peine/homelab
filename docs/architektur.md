@@ -57,10 +57,10 @@ gesetzt und ging beim Recreate verloren.
 | `ollama` | `ollama/ollama:latest` | lokale Modelle | `homeserver_default` | ja |
 
 Die Root-Spalte ist ein Befund, kein Entwurf: `docker inspect … .Config.User` ist bei
-allen außer `n8n` leer, bei `open-webui` sogar explizit `0:0`. Alle Container laufen
-zusätzlich mit `no-new-privileges`; die `latest`-Images sind auf die am 03.11.2026
-laufenden Digests gepinnt. Das steht als offener Punkt in
-[hardening-offen.md](hardening-offen.md).
+allen außer `n8n` leer, bei `open-webui` sogar explizit `0:0`. Alle Container laufen mit
+`no-new-privileges` und `cap_drop: ALL`; nur die für den Entrypoint nötigen Capabilities
+sind zurückgegeben. Die `latest`-Images sind auf die am 03.11.2026 laufenden Digests
+gepinnt. Details: [hardening.md](hardening.md).
 
 ## Netze und Ports
 
@@ -138,8 +138,10 @@ Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen B
 
 ## Offene Punkte
 
-- [ ] Tailscale ist **nicht** installiert (`command -v tailscale` leer). Der Auftrag
-      nannte es; entweder nachinstallieren oder aus der Beschreibung streichen.
-- [ ] Fail2ban ist nicht aktiv. SSH ist Key-only, daher optional – aber ungeprüft.
-- [ ] Container-Härtung: `no-new-privileges` ist aktiv; `cap_drop` und non-root fehlen.
-- [ ] Root-Login ist per Key erlaubt; ein dauerhafter Admin-Benutzer mit sudo fehlt.
+- [ ] Tailscale ist installiert und `tailscaled` aktiv, aber `Logged out` –
+      `tailscale up` fehlt.
+- [ ] Non-root: Open WebUI, NPM und Ollama laufen als root; die übrigen Entrypoints
+      wechseln den Benutzer.
+- [ ] Offsite-Backup und Verschlüsselung der Sicherungen
+      (siehe [backup-restore.md](backup-restore.md)).
+- [ ] Monitoring-Ping für das Ghost-Backup.

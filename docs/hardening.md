@@ -5,7 +5,8 @@ Umsetzung und dem Risiko, wenn sie fehlt. Offene Punkte: [hardening-offen.md](ha
 
 ## 1. SSH nur mit Schlüssel
 
-**Was:** Passwort-Login ist aus, Root-Login nur per Key, maximal sechs Versuche.
+**Was:** Passwort-Login ist aus, Root-Login ist aus, maximal sechs Versuche. Der
+Admin-Zugang läuft über `admin` mit sudo.
 
 **Warum:** Passwörter sind brute-forcebar; Bots scannen IPv4-Bereiche permanent. Ein
 Key lässt sich nicht erraten.
@@ -16,7 +17,7 @@ Key lässt sich nicht erraten.
 passwordauthentication no
 kbdinteractiveauthentication no
 pubkeyauthentication yes
-permitrootlogin without-password
+permitrootlogin no
 maxauthtries 6
 ```
 
@@ -187,14 +188,100 @@ docker inspect <container> --format '{{.HostConfig.SecurityOpt}}'   # [no-new-pr
 **Risiko ohne:** Ein Fehler in einem exponierten Dienst kann über Setuid-Binaries
 Rechte eskalieren, statt auf den Container beschränkt zu bleiben.
 
+## 11. Capabilities reduziert
+
+**Was:** Alle zehn Container laufen mit `cap_drop: [ALL]`. Nur die Capabilities, die der
+Entrypoint zum Starten und Benutzerwechseln braucht, sind per `cap_add` zurückgegeben.
+
+**Warum:** Die Docker-Defaults enthalten unter anderem `NET_RAW`, `CHOWN`,
+`DAC_OVERRIDE` und `SETUID`. Ein kompromittierter Dienst soll nicht mehr können, als er
+muss.
+
+**Wie:** Pro Service in der Compose-Datei; Beispiele:
+
+```yaml
+# Ghost/MySQL/Postgres/Paperless: Entrypoint wechselt den Benutzer
+cap_drop: [ALL]
+cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+
+# NPM: bindet 80/443 und droppt die Worker
+cap_drop: [ALL]
+cap_add: [NET_BIND_SERVICE, CHOWN, DAC_OVERRIDE, SETGID, SETUID]
+
+# Ollama, n8n: keine besonderen Rechte
+cap_drop: [ALL]
+```
+
+**Nachweis:**
+
+```bash
+docker inspect <container> --format '{{.HostConfig.CapDrop}} {{.HostConfig.CapAdd}}'
+```
+
+**Risiko ohne:** Ein Fehler in einem exponierten Dienst behält die vollen
+Docker-Default-Capabilities – inklusive `NET_RAW` und `SETUID`.
+
+## 12. Fail2ban für SSH
+
+**Was:** Fail2ban läuft, der `sshd`-Jail liest das systemd-Journal. Fünf Fehlversuche in
+zehn Minuten führen zu einer Stunde Sperre.
+
+**Warum:** SSH ist Key-only; das senkt das Risiko, beseitigt aber nicht die Log-Flut und
+nicht Fehlkonfigurationen. Ein Jail bremst wiederholte Versuche.
+
+**Wie:** `/etc/fail2ban/jail.local`:
+
+```ini
+[DEFAULT]
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+backend  = systemd
+
+[sshd]
+enabled = true
+```
+
+**Nachweis:**
+
+```bash
+fail2ban-client status sshd
+```
+
+**Risiko ohne:** Wiederholte Login-Versuche laufen ungebremst; bei Key-only ist das
+Schadenspotenzial klein, die Logs bleiben aber voll.
+
+## 13. Kein Root-Login, eigener Admin-Benutzer
+
+**Was:** `PermitRootLogin no`. Der Zugang läuft über `admin` (uid 1001) mit sudo; die
+vorhandenen Root-Keys wurden nach `/home/admin/.ssh/authorized_keys` übernommen.
+Zusätzlich wurde die widersprüchliche Datei `10-allow-root-password-login.conf`
+deaktiviert – sie setzte `PermitRootLogin yes`, wurde aber von
+`00-hardening.conf` überstimmt.
+
+**Warum:** Ein eigener Admin-Benutzer hinterlässt Spuren in `auth.log`, lässt sich
+einzeln sperren und ist nicht derselbe Account wie der Superuser. Root per Key ist
+besser als Root per Passwort, aber kein Ersatz für saubere Zuordnung.
+
+**Wie:**
+
+```
+permitrootlogin no
+passwordauthentication no
+```
+
+**Nachweis:** Root-Login schlägt mit `Permission denied (publickey)` fehl; `admin` kommt
+mit Key und `sudo` hinein.
+
+**Risiko ohne:** Der Root-Key ist ein Single Point of Failure; jede Aktion läuft als
+root ohne getrennte Spur.
+
 ## Offene Punkte
 
 | Punkt | Status | Details |
 |---|---|---|
-| Container-Härtung | `no-new-privileges` aktiv; `cap_drop`/non-root offen | [hardening-offen.md](hardening-offen.md#container-härtung) |
-| Fail2ban | nicht aktiv | [hardening-offen.md](hardening-offen.md#fail2ban) |
-| Tailscale | nicht installiert | [hardening-offen.md](hardening-offen.md#tailscale) |
-| Root-Login | per Key erlaubt | [hardening-offen.md](hardening-offen.md#root-login) |
+| Non-root | Open WebUI, NPM, Ollama laufen als root | [hardening-offen.md](hardening-offen.md#non-root) |
+| Tailscale | installiert, aber `Logged out` | [hardening-offen.md](hardening-offen.md#tailscale) |
 
 Grundsatz: Keine Maßnahme ist „empfohlen, weil Best Practice“. Jede Zeile hat einen
 Beleg vom Server oder steht ausdrücklich unter „offen“.
