@@ -37,7 +37,9 @@ flowchart TB
 
 NPM ist Mitglied beider Netze (`homeserver_default` und `kisium-net`). Deshalb erreicht
 der Proxy sowohl `kisium-ghost` als auch `n8n`, `open-webui`, `searxng` und `paperless`
-über deren Container-Namen.
+über deren Container-Namen. Die Verbindung zu `kisium-net` ist in der Stack-Compose als
+`external: true` hinterlegt – sie war vorher manuell per `docker network connect`
+gesetzt und ging beim Recreate verloren.
 
 ## Komponenten
 
@@ -55,8 +57,10 @@ der Proxy sowohl `kisium-ghost` als auch `n8n`, `open-webui`, `searxng` und `pap
 | `ollama` | `ollama/ollama:latest` | lokale Modelle | `homeserver_default` | ja |
 
 Die Root-Spalte ist ein Befund, kein Entwurf: `docker inspect … .Config.User` ist bei
-allen außer `n8n` leer, bei `open-webui` sogar explizit `0:0`. Das steht als offener
-Punkt in [hardening-offen.md](hardening-offen.md).
+allen außer `n8n` leer, bei `open-webui` sogar explizit `0:0`. Alle Container laufen
+zusätzlich mit `no-new-privileges`; die `latest`-Images sind auf die am 03.11.2026
+laufenden Digests gepinnt. Das steht als offener Punkt in
+[hardening-offen.md](hardening-offen.md).
 
 ## Netze und Ports
 
@@ -137,8 +141,5 @@ Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen B
 - [ ] Tailscale ist **nicht** installiert (`command -v tailscale` leer). Der Auftrag
       nannte es; entweder nachinstallieren oder aus der Beschreibung streichen.
 - [ ] Fail2ban ist nicht aktiv. SSH ist Key-only, daher optional – aber ungeprüft.
-- [ ] HSTS fehlt. NPM hat zwar eine `map $scheme $hsts_header`, aber kein
-      `add_header Strict-Transport-Security`.
-- [ ] Mehrere Images laufen auf `latest` (NPM, n8n, Open WebUI, SearXNG, Paperless,
-      Ollama). Ein ungeprüfter Pull kann den Stack brechen.
-- [ ] Container-Härtung: überwiegend root, kein `cap_drop`, kein `no-new-privileges`.
+- [ ] Container-Härtung: `no-new-privileges` ist aktiv; `cap_drop` und non-root fehlen.
+- [ ] Root-Login ist per Key erlaubt; ein dauerhafter Admin-Benutzer mit sudo fehlt.

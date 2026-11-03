@@ -24,24 +24,28 @@ ersetzt.
 - WebSocket-Header für n8n und Open WebUI (`Upgrade`, `Connection`)
 - Weiterleitung an Container-Namen, nicht an Host-Ports
 
-## HSTS: definiert, aber nicht gesendet
+NPM hängt über ein externes Netz (`kisium-net`) auch am Blog-Stack. Die Verbindung steht
+in der Stack-Compose als `external: true`; sie war vorher manuell per
+`docker network connect` gesetzt und ging beim Recreate verloren.
 
-Die generierten Configs enthalten:
+## HSTS
+
+Seit 03.11.2026 gesetzt – in `/data/nginx/custom/server_proxy.conf`, das in jeden
+Proxy-Host eingebunden wird:
 
 ```nginx
-map $scheme $hsts_header {
-    https   "max-age=63072000; preload";
-}
+more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
 ```
 
-Ein `add_header Strict-Transport-Security …` fehlt jedoch. `curl -sSI` am 03.11.2026
-zeigt keinen HSTS-Header. Der `map`-Block ist damit toter Code.
+`add_header` auf Server-Ebene reichte nicht: `location /` bindet
+`conf.d/include/proxy.conf` ein, dort steht `add_header X-Served-By $host;`. Ein eigenes
+`add_header` in der Location bricht die Vererbung von der Server-Ebene. headers-more
+(im NPM-Image enthalten) setzt den Header unabhängig davon.
 
-**Vorschlag (nicht produktiv):** in NPM unter „Advanced“ pro Host oder global in einer
-Custom Config:
+Nachweis:
 
-```nginx
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+```bash
+curl -sSI https://<DEINE_DOMAIN> | grep -i strict-transport
 ```
 
 ## Export
@@ -53,6 +57,5 @@ Die vollständigen Configs liegen im Container unter `/data/nginx/proxy_host/*.c
 ## TODO
 
 - [ ] Eine sanitisierte `proxy-host.conf` als Beispiel ablegen (bisher nur die Tabelle)
-- [ ] HSTS ergänzen und mit `curl -sSI` nachweisen
-- [ ] NPM-Image pinnen (`latest` → konkreter Tag)
-- [ ] Prüfen, ob die `map`-Zeile nach einem HSTS-Update noch gebraucht wird
+- [ ] Prüfen, ob die `map $scheme $hsts_header`-Zeile im generierten Config noch
+      gebraucht wird – HSTS kommt jetzt aus `server_proxy.conf`

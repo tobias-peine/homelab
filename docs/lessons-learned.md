@@ -101,6 +101,11 @@ beim nächsten Mal nur eine Zeile YAML und weiß nicht, ob man sie ändern darf.
 **Lösung:** Diese Dateien. Jede Maßnahme mit Begründung, jede Lücke als `TODO`. Der
 Test: Kann jemand anderes den Stack aus dem Repo nachbauen, ohne mich zu fragen?
 
+Ein zweites Beispiel: NPM war manuell mit `docker network connect kisium-net npm`
+verbunden. Beim Recreate über Compose war die Verbindung weg – der Blog antwortete mit
+`502`, die anderen vier Hosts liefen weiter. Manuell gesetzter Zustand ist kein Zustand;
+er muss in die Compose-Datei.
+
 **Mitgenommen:** Dokumentation ist kein Papierkram, sondern Teil des Betriebs. Sie ist
 dann gut, wenn sie auch die offenen Stellen nennt – nicht nur das, was funktioniert.
 
