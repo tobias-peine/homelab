@@ -1,0 +1,150 @@
+name: homeserver
+
+x-log: &log
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+volumes:
+  webui:
+  ollama:
+  paperless_data:
+  paperless_media:
+  paperless_pgdata:
+  paperless_redisdata:
+services:
+  ollama:
+    image: ollama/ollama@sha256:265409e1d931028a8f7d5a32bcbafddd7bffbc6cc629d77efe9560adf692a5e7
+    container_name: ollama
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    environment:
+      HOME: /tmp
+      OLLAMA_MODELS: /models/models
+      OLLAMA_KEEP_ALIVE: 5m
+      OLLAMA_MAX_LOADED_MODELS: 1
+    volumes:
+      - ollama:/models
+    mem_limit: 1500m
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *log
+  paperless-broker:
+    image: redis@sha256:44960b3100c48159a66d28c18b0588c193492e25f7551d60e51dd464fc3eca5b
+    container_name: paperless-broker
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+    volumes:
+      - paperless_redisdata:/data
+    mem_limit: 150m
+    logging: *log
+
+  paperless-db:
+    image: postgres@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
+    container_name: paperless-db
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+    volumes:
+      - paperless_pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: ${PAPERLESS_DB_PASSWORD}
+    mem_limit: 500m
+    logging: *log
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx@sha256:9bc6e8248891bcfa6f52fffe8b81e4ea8cae75790c3ec1b9906961a7ba55c969
+    container_name: paperless
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+    depends_on:
+      - paperless-db
+      - paperless-broker
+    volumes:
+      - paperless_data:/usr/src/paperless/data
+      - paperless_media:/usr/src/paperless/media
+      - /opt/paperless/consume:/usr/src/paperless/consume
+      - /opt/paperless/export:/usr/src/paperless/export
+    environment:
+      PAPERLESS_REDIS: redis://paperless-broker:6379
+      PAPERLESS_DBHOST: paperless-db
+      PAPERLESS_DBENGINE: postgresql
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER: paperless
+      PAPERLESS_DBPASS: ${PAPERLESS_DB_PASSWORD}
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
+      PAPERLESS_URL: ${PAPERLESS_URL}
+      PAPERLESS_TIME_ZONE: ${PAPERLESS_TIME_ZONE}
+      PAPERLESS_OCR_LANGUAGE: ${PAPERLESS_OCR_LANGUAGE}
+      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
+      PAPERLESS_ADMIN_MAIL: ${PAPERLESS_ADMIN_MAIL}
+      PAPERLESS_UID: "1000"
+      PAPERLESS_GID: "1000"
+    mem_limit: 1g
+    logging: *log
+
+  open-webui:
+    image: open-webui:nonroot-20261103
+    container_name: open-webui
+    user: "1000:1000"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY}
+      OLLAMA_BASE_URL: http://ollama:11434
+      ENABLE_OLLAMA_API: "true"
+      RAG_EMBEDDING_ENGINE: ollama
+      RAG_EMBEDDING_MODEL: nomic-embed-text
+      RAG_OLLAMA_BASE_URL: http://ollama:11434
+      FORWARDED_ALLOW_IPS: "*"
+      ENABLE_SIGNUP: "false"
+      CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN}
+      TASK_MODEL_EXTERNAL: deepseek-chat
+    volumes:
+      - webui:/app/backend/data
+    ports:
+      - "127.0.0.1:8080:8080"
+    mem_limit: 2g
+    logging: *log

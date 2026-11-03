@@ -134,3 +134,7 @@ neuen Digest wählen, `docker compose up -d`, Health prüfen. Vorher sichern.
 - [docs/backup-restore.md](docs/backup-restore.md) – Backup, Restore-Tests, Fehler
 - [docs/offsite-pull.md](docs/offsite-pull.md) – Offsite-Pull auf den Linux-Rechner, age, ntfy
 - [docs/lessons-learned.md](docs/lessons-learned.md) – Fehler und was daraus wurde
+- [compose/homeserver/README.md](compose/homeserver/README.md) – acht Container,
+  Images auf Digests gepinnt
+- [docs/evidence/README.md](docs/evidence/README.md) – Rohlogs zu SSH, UFW, Restore,
+  Backup und Alterscheck

@@ -1,0 +1,89 @@
+x-log: &log
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+volumes:
+  n8n:
+  searxng_cache:
+
+services:
+
+  npm:
+    image: jc21/nginx-proxy-manager@sha256:4393e642e233e5efd5adeb7f10918d4aaea71c9ed875b94190273fc8e87f9594
+    container_name: npm
+    networks:
+      - default
+      - kisium-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "127.0.0.1:81:81"
+    volumes:
+      - /opt/npm/data:/data
+      - /opt/npm/letsencrypt:/etc/letsencrypt
+    mem_limit: 250m
+    logging: *log
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n@sha256:a18edcf018198b33b5488fb47ededafe11e0b10d28f65b9535b7c447c9ce3b2c
+    container_name: n8n
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      N8N_HOST: ${N8N_HOST}
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://${N8N_HOST}/
+      N8N_EDITOR_BASE_URL: https://${N8N_HOST}/
+      N8N_PROXY_HOPS: "1"
+      GENERIC_TIMEZONE: Europe/Berlin
+      N8N_DIAGNOSTICS_ENABLED: "false"
+    volumes:
+      - n8n:/home/node/.n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+    mem_limit: 600m
+    logging: *log
+
+  searxng:
+    image: searxng/searxng@sha256:d81e14a4328ba7a57f297dff0472be629d30bf29580406c0d5b3bdab563c9bed
+    container_name: searxng
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+    environment:
+      SEARXNG_BASE_URL: ${SEARXNG_BASE_URL}
+    volumes:
+      - /opt/searxng/searxng:/etc/searxng
+      - searxng_cache:/var/cache/searxng
+    ports:
+      - "127.0.0.1:8888:8080"
+    mem_limit: 500m
+    logging: *log
+
+networks:
+  kisium-net:
+    external: true

@@ -1,0 +1,5 @@
+port 22
+maxauthtries 6
+permitrootlogin no
+pubkeyauthentication yes
+passwordauthentication no
