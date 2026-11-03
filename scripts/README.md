@@ -3,8 +3,43 @@
 | Skript | Aufgabe | Stand |
 |---|---|---|
 | [`backup.sh`](backup.sh) | MySQL-Dump und Content-Volume sichern, prüfen, aufbewahren | getestet 03.11.2026 |
-| [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 43 s |
+| [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 47 s |
 | [`health-check.sh`](health-check.sh) | Container, HTTP, Platte, Zombies, Swap prüfen | getestet 03.11.2026 |
+
+## In der Produktion
+
+| Skript | Ort | Zeit | Zweck |
+|---|---|---|---|
+| Ghost-Backup | `/opt/kisium/backup.sh` | täglich 03:00 | MySQL-Dump + `ghost_content` |
+| Paperless-Backup | `/opt/backups/paperless-backup.sh` | täglich 03:30 | Postgres, Data, Media, Export, `.env` |
+| Paperless-Restore-Test | `/opt/backups/run-restore-test.sh` | täglich 04:00 | Backup in isoliertes Projekt, Prüfungen, Healthchecks-Ping |
+| Ghost-Restore-Test | `scripts/restore-test.sh` | manuell | echte Sicherung in isoliertes Projekt |
+
+Die Produktionsskripte sind älter und einfacher als die Repo-Fassung. Der Ghost-Backup
+dort prüft den Dump nicht; [`backup.sh`](backup.sh) hier prüft gzip, `CREATE TABLE` und
+schreibt SHA-256.
+
+## Testergebnisse
+
+**Ghost, 03.11.2026** – echtes Backup vom Server, isoliertes Projekt, Port 2370:
+
+```
+Quelle:  posts=10 users=1 settings=129
+Restore: posts=10 users=1 settings=129
+Startseite: HTTP 200
+Restore-Test erfolgreich in 47 Sekunden
+```
+
+**Paperless, 03.11.2026** – täglicher Lauf um 04:00:
+
+```
+Dokumente: 150
+Benutzer:  3
+Tags:      56
+Media:     443
+Webserver: HTTP 302
+Restore-Test OK, Monitoring-Ping OK
+```
 
 ## backup.sh
 
@@ -13,13 +48,10 @@
 BACKUP_DIR=/srv/backups RETENTION_DAYS=30 ./scripts/backup.sh
 ```
 
-Sichert `ghost` per `mysqldump --single-transaction` und das Content-Volume per
-`tar`. Schreibt zuerst in `.tmp`, prüft gzip und `CREATE TABLE`, benennt erst dann um.
-Legt eine SHA-256-Datei ab und entfernt Sicherungen, die älter als `RETENTION_DAYS`
-sind (Default 14).
-
-Beim Test: 29 KB Dump, 3,7 KB Content, Prüfsummen ok. Die Content-Datei gehörte
-zunächst `nobody` – behoben mit `--user "$(id -u):$(id -g)"`.
+Sichert `ghost` per `mysqldump --single-transaction` und das Content-Volume per `tar`.
+Schreibt zuerst in `.tmp`, prüft gzip und `CREATE TABLE`, benennt erst dann um, legt eine
+SHA-256-Datei ab und entfernt Sicherungen, die älter als `RETENTION_DAYS` sind (Default
+14). Der Tar-Container läuft mit `--user`, damit die Datei nicht `nobody` gehört.
 
 ## restore-test.sh
 
@@ -29,15 +61,14 @@ PORT=2371 PROJECT=homelabrestore2 SOURCE_MYSQL=kisium-mysql ./scripts/restore-te
 KEEP=1 ./scripts/restore-test.sh     # Testumgebung stehen lassen
 ```
 
-Spielt die neueste Sicherung in ein eigenes Compose-Projekt: eigenes Netz, eigene
-Volumes, eigener Port. Entfernt dafür `name: kisium-net`, `container_name` und den
-Produktions-Port aus der Compose-Datei. Bricht ab, wenn `PROJECT=kisium` gesetzt ist,
-der Port belegt ist oder die Prüfsummen nicht passen. Vergleicht am Ende
-Beitrags- und Benutzerzahl mit der Quelle und räumt auf.
+Entfernt aus der Compose-Datei den festen Projektnamen, `name: kisium-net`,
+`container_name` und den Produktions-Port. Bricht ab, wenn `PROJECT=kisium` gesetzt ist,
+der Port belegt ist oder die Prüfsummen nicht passen. Vergleicht am Ende Beitrags- und
+Benutzerzahl mit der Quelle und räumt auf.
 
-Beim Test: 43 Sekunden, HTTP 200, posts 2 = 2, users 1 = 1, settings 129 = 129.
-
-**Wichtig:** Das ist ein Test gegen eine Wegwerf-Instanz, kein Produktions-Restore.
+Der Healthcheck bleibt unangetastet. Genau hier lag der Fehler beim ersten manuellen
+Versuch: Ein zu breites `sed` löschte die Zeile mit `127.0.0.1:2368` – und damit den
+Healthcheck. Das Skript löscht nur den `ports:`-Block.
 
 ## health-check.sh
 
@@ -46,12 +77,9 @@ Beim Test: 43 Sekunden, HTTP 200, posts 2 = 2, users 1 = 1, settings 129 = 129.
 HTTP_URL=http://127.0.0.1:2368/ ./scripts/health-check.sh
 ```
 
-Prüft Container-Status und Health, HTTP-Code, Plattenbelegung, Zombie-Prozesse und
-Swap. Exit 0 = ok (auch mit Warnungen), Exit 1 = harter Fehler (Container aus, HTTP
-nicht 200).
-
-Beim Test: beide Container healthy, HTTP 200, Platte 23 %, keine Zombies, Swap 0 %.
-Die Swap-Zeile heißt je nach Locale „Auslager:“ – deshalb `LC_ALL=C` im Skript.
+Prüft Container-Status und Health, HTTP-Code, Plattenbelegung, Zombie-Prozesse und Swap.
+Exit 0 = ok (auch mit Warnungen), Exit 1 = harter Fehler. `LC_ALL=C` ist nötig, weil die
+Swap-Zeile je nach Locale „Auslager:“ heißt.
 
 ## Anforderungen
 
@@ -63,6 +91,7 @@ Die Swap-Zeile heißt je nach Locale „Auslager:“ – deshalb `LC_ALL=C` im S
 
 ## Offen
 
-- [ ] Zeitplan (cron oder systemd-Timer) und Ablage festlegen
-- [ ] Benachrichtigung bei Fehlschlag
-- [ ] Verschlüsselung der Sicherungen
+- [ ] Offsite-Kopie der Sicherungen
+- [ ] Verschlüsselung (das Paperless-Tarball enthält `.env`)
+- [ ] Monitoring-Ping für das Ghost-Backup
+- [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version

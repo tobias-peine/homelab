@@ -1,141 +1,143 @@
 # Backup und Restore
 
-## Strategie
+Zwei Stacks, zwei Sicherungen, zwei Wiederherstellungswege. Beide wurden am 03.11.2026
+gegen eine Wegwerf-Instanz getestet – nicht gegen die Produktion.
 
-Gesichert werden zwei Dinge: die MySQL-Datenbank als logischer Dump und das
-Ghost-Content-Volume als Archiv. Beides zusammen reicht, um den Blog auf einer leeren
-Maschine wieder aufzubauen – der Dump enthält Beiträge, Einstellungen und Mitglieder,
-das Volume Themes, Bilder und Uploads. Ein Backup zählt erst, wenn der Restore
-mindestens einmal auf einem separaten Ziel durchgespielt wurde.
+## Überblick
 
-## Stand
+| Sicherung | Zeit | Inhalt | Aufbewahrung | Restore-Test |
+|---|---|---|---|---|
+| Paperless | täglich 03:30 | PostgreSQL-Dump, Data-/Media-Volume, Export, `.env`, Compose | 7 Tage + 4 Wochen | täglich 04:00 |
+| Ghost | täglich 03:00 | MySQL-Dump, `ghost_content` | 14 Tage | manuell / `scripts/restore-test.sh` |
 
-| Punkt | Stand |
-|---|---|
-| Backup-Skript | [`scripts/backup.sh`](../scripts/backup.sh) – getestet am 03.11.2026 |
-| Restore-Test | [`scripts/restore-test.sh`](../scripts/restore-test.sh) – 03.11.2026, 43 s, lokale Testinstanz |
-| Zeitplan | `TODO` (manuell? cron? systemd-Timer?) |
-| Ziel / Ablage | `TODO` (lokal? zweiter Host? Object Storage?) |
-| Aufbewahrung | 14 Tage als Skript-Default (`RETENTION_DAYS`), Entscheidung offen |
-| Verschlüsselung | `TODO` |
-| Überwachung | `TODO` (wer merkt, dass ein Backup fehlgeschlagen ist?) |
-| Produktions-Restore | `TODO` – bisher nur gegen eine lokale Testinstanz gelaufen |
-| RPO / RTO | `TODO` (wie viel Datenverlust ist akzeptabel, wie lange darf die Wiederherstellung dauern?) |
+Beide Sicherungen liegen lokal unter `/opt/backups/paperless` bzw. `/opt/kisium/backups`.
+Es gibt **keine** Offsite-Kopie. Damit ist die 3-2-1-Regel nicht erfüllt.
 
-## Automatisierter Restore-Test
+## Paperless
+
+**Skript:** `/opt/backups/paperless-backup.sh`, Cron `30 3 * * *`.
+
+Es sichert:
+
+- PostgreSQL mit `pg_dump -Fc`
+- die Volumes `homeserver_paperless_data` und `_media`
+- den Export-Ordner `/opt/paperless/export`
+- `.env` und beide Compose-Dateien
+- alles als ein Tarball, `chmod 600` (enthält Zugangsdaten)
+
+Rotation: sieben Tages-Backups, sonntags zusätzlich ein Wochen-Backup, vier Wochen
+Aufbewahrung. Ein Lauf erzeugt etwa 148 MB und dauert rund 20 Sekunden.
+
+**Restore-Test:** `/opt/backups/restore-test.sh`, aufgerufen vom Wrapper
+`/opt/backups/run-restore-test.sh` um 04:00.
+
+Der Test entpackt das Tarball nach `/tmp/pl-restore-test`, startet ein eigenes
+Compose-Projekt `pl-restore-test` (Postgres, Redis, Paperless) auf Port 8001, spielt
+den Dump ein und prüft:
+
+- Dokumente, Benutzer und Tags in der Datenbank
+- Anzahl der Media-Dateien
+- HTTP-Antwort des Webservers
+
+Danach wird das Projekt mit `down -v` entfernt. Bei Erfolg sendet der Wrapper einen Ping
+an Healthchecks.io; bei Fehler bewusst **keinen**, damit der Check in den Grace-Modus
+läuft und alarmiert.
+
+**Ergebnis 03.11.2026:**
+
+```
+Dokumente: 150
+Benutzer:  3
+Tags:      56
+Media:     443
+Webserver: HTTP 302
+Restore-Test OK, Monitoring-Ping OK
+```
+
+## Ghost
+
+**Skript:** `/opt/kisium/backup.sh`, Cron `0 3 * * *` (seit 03.11.2026).
+
+Es sichert:
+
+- MySQL mit `mysqldump --single-transaction --quick --routines --events`
+- das Volume `kisium_ghost_content` per `tar`
+- Aufbewahrung: 14 Tage (`KEEP_DAYS`)
+
+Ein Lauf am 03.11.2026 ergab 249 KB Datenbank-Dump und 4,6 MB Content-Archiv.
+
+**Restore-Test:** Das Skript im Repo, [`scripts/restore-test.sh`](../scripts/restore-test.sh),
+gegen das echte Backup auf dem Server:
 
 ```bash
-./scripts/restore-test.sh
+sudo env COMPOSE_FILE=/opt/kisium/docker-compose.yml \
+  BACKUP_DIR=/opt/kisium/backups SOURCE_MYSQL=kisium-mysql \
+  PROJECT=ghostrestoretest PORT=2370 bash restore-test.sh
 ```
 
-Das Skript spielt die neueste Sicherung in ein **eigenes Compose-Projekt** zurück:
-eigenes Netz, eigene Volumes, eigener Port, keine Container-Namen aus der Produktion.
-Es bricht ab, wenn `PROJECT=kisium` gesetzt ist, der Port belegt ist oder die
-Prüfsummen nicht passen. Am Ende vergleicht es Beitrags-, Benutzer- und
-Einstellungszahl mit der Quelle und räumt die Testumgebung wieder ab.
+Das Skript entfernt aus der Compose-Datei den festen Projektnamen, das feste Netz
+`kisium-net`, die `container_name`-Einträge und das Port-Mapping. Es erzeugt ein eigenes
+Netz, eigene Volumes und einen eigenen Port. Der Healthcheck bleibt unangetastet – er
+prüft im Container auf `127.0.0.1:2368`.
 
-```bash
-# Anderer Port / anderes Projekt / andere Quelle
-PORT=2371 PROJECT=homelabrestore2 SOURCE_MYSQL=kisium-mysql ./scripts/restore-test.sh
-
-# Testumgebung zur Fehlersuche stehen lassen
-KEEP=1 ./scripts/restore-test.sh
-```
-
-Erwartete Ausgabe (gekürzt):
+**Ergebnis 03.11.2026:**
 
 ```
-Prüfsummen ok
 mysql: healthy
-Importiere ghost-db-….sql.gz
-Spiele ghost-content-….tar.gz zurück
+Importiere ghost-db-20261103-011345.sql.gz
+Spiele ghost-content-20261103-011345.tar.gz zurück
 ghost: healthy
 Startseite: HTTP 200
-Quelle:  posts=2 users=1 settings=129
-Restore: posts=2 users=1 settings=129
-Restore-Test erfolgreich in 43 Sekunden
+Quelle:  posts=10 users=1 settings=129
+Restore: posts=10 users=1 settings=129
+Restore-Test erfolgreich in 47 Sekunden
 ```
 
-## Testergebnis vom 03.11.2026
+Keine Reste: keine Testcontainer, -volumes oder -netze nach dem Lauf.
 
-| | |
+## Skripte im Repo
+
+Die Skripte in [`scripts/`](../scripts/) sind die portable, getestete Fassung:
+
+| Skript | Unterschied zur Produktion |
 |---|---|
-| Umgebung | lokaler Docker-Host, dieselbe Compose-Datei, Ghost 6.73.0, MySQL 8.4.13 |
-| Quelle | Testinstanz mit 2 Beiträgen, 1 Benutzer, 129 Einstellungen |
-| Sicherung | 29 KB Datenbank-Dump, 3,7 KB Content-Archiv |
-| Dauer | 43 Sekunden (MySQL-Start, Import, Content, Ghost-Start, Prüfungen) |
-| Startseite | HTTP 200 |
-| Datenvergleich | posts 2 = 2, users 1 = 1, settings 129 = 129 |
-| Prüfsummen | ok |
-| Aufräumen | `docker compose … down -v`, keine Reste |
+| `backup.sh` | prüft gzip und `CREATE TABLE`, schreibt SHA-256, nutzt `--user` für den Tar |
+| `restore-test.sh` | isoliertes Projekt, Datenvergleich mit der Quelle, Aufräumen |
+| `health-check.sh` | Container, HTTP, Platte, Zombies, Swap |
 
-**Einschränkung:** Das war eine lokale Wegwerf-Instanz, nicht die Produktion. Der
-Ablauf ist damit belegt, die Wiederherstellung der echten Daten steht noch aus. Der
-Test beweist nicht, dass das Produktions-Backup vollständig ist – nur, dass das
-Verfahren funktioniert und die Prüfungen anschlagen.
-
-## Manueller Ablauf
-
-Falls das Skript nicht läuft oder ein Schritt nachvollzogen werden soll:
-
-1. **Test-Compose erzeugen.** Projektname, Netzname (`kisium-net`), `container_name`
-   und Port-Mapping entfernen. Der Healthcheck bleibt – er prüft im Container auf
-   `127.0.0.1:2368`.
-2. **Test-Umgebung anlegen.** Eigenes `.env` mit `GHOST_URL=http://localhost:<PORT>`
-   und neuen Datenbank-Passwörtern.
-3. **MySQL starten und warten.** `docker compose -p <projekt> up -d mysql`, dann auf
-   `healthy` warten – nicht auf gut Glück `sleep`.
-4. **Dump importieren.** `zcat <dump>.sql.gz | docker compose … exec -T mysql sh -c
-   'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ghost'`.
-5. **Content zurückspielen.** Volume `<projekt>_ghost_content` anlegen, auf die
-   Ghost-UID chownen (1000 im offiziellen Image), als diese UID entpacken.
-6. **Ghost starten und prüfen.** `up -d ghost`, auf `healthy` warten, dann HTTP 200,
-   Beitrags-/Benutzerzahl und ein Bild prüfen.
-7. **Aufräumen.** `docker compose -p <projekt> down -v`. Der Dump enthält
-   personenbezogene Daten – Testdateien löschen.
-
-| Prüfung | Erwartung |
-|---|---|
-| Container | `healthy`, nicht nur `running` |
-| Startseite | `200` |
-| Beitragsanzahl | gleich der Quelle |
-| Benutzerzahl | gleich der Quelle |
-| Content | Theme und Bilder vorhanden, ein Bild lädt |
-| Login | `/ghost/` erreichbar |
+Die Produktionsskripte unter `/opt/` sind älter und einfacher. Der Ghost-Backup dort
+prüft den Dump nicht – das Repo-Skript schon.
 
 ## Was schiefging
 
-**1. `zgrep -q` unter `pipefail`.**
-Die Prüfung „enthält der Dump eine `CREATE TABLE`?“ schlug fehl, obwohl 101 Tabellen im
-Dump standen. `grep -q` beendet die Pipe nach dem ersten Treffer, `zcat` bekommt
-SIGPIPE, und `pipefail` wertet die Pipe als Fehler. Behoben mit `grep -c` (liest bis
-zum Ende) und einer Zählung.
+**1. Der Restore-Test hat zwei Tage lang nichts getestet.**
+`run-restore-test.sh` ermittelte das neueste Backup, übergab den Pfad aber nicht an
+`restore-test.sh`. Das Skript fiel auf seinen hart codierten Default zurück – ein am
+25.10. gelöschtes Backup. Seit dem 01.11. stand im Log „Backup nicht gefunden“, der
+Healthchecks-Ping blieb aus. Behoben am 03.11. durch Übergabe von `"$LATEST"`.
 
-**2. Ein zu breites `sed` löschte den Healthcheck.**
-Der Ghost-Healthcheck enthält die Zeile `http://127.0.0.1:2368/`. Ein `sed`, das alle
-Zeilen mit `127.0.0.1:2368` entfernte, nahm den Healthcheck mit – der Container lief,
-meldete aber nie `healthy`. Das Skript löscht jetzt nur den `ports:`-Block.
+**2. Das Ghost-Backup war nicht eingeplant.**
+`/opt/kisium/backup.sh` existierte, lief aber in keinem Cron. Der Blog wäre im
+Fehlerfall ohne Sicherung dagestanden. Seit 03.11. läuft es täglich um 03:00.
 
-**3. `Permission denied` beim Zurückspielen des Content-Volumes.**
-Das frisch angelegte Volume gehört root; das Entpacken als uid 1000 scheiterte. Lösung:
-Volume-Root auf die Ghost-UID chownen und als diese UID entpacken. Auf dem Server läuft
-der Admin als root – dort wäre der Fehler nicht aufgetreten, was ihn besonders tückisch
-macht.
+**3. Der Ghost-Healthcheck erzeugte Zombies.**
+`wget --spider` folgte dem `301` auf `https://127.0.0.1:2368` und sprach TLS mit einem
+HTTP-Port. Jeder Fehlversuch hinterließ einen `ssl_client`-Zombie; nach elf Stunden
+waren es 1.354. `nc -z` und `init: true` haben beides behoben (0 Zombies).
 
-**4. Das Testprojekt wäre im Produktionsnetz gelandet.**
-Die Compose-Datei setzt `name: kisium-net` fest. Ein zweites Projekt mit derselben Datei
-hängt damit im selben Netz wie die Produktion – Docker warnt, verhindert es aber nicht.
-Das Test-Compose entfernt die Zeile; das Projekt bekommt `<projekt>_kisium`.
-
-**5. Der Content-Tar gehörte `nobody`.**
-Ohne `--user` schrieb der Alpine-Container die Datei als `nobody:nogroup`. Mit
-`--user "$(id -u):$(id -g)"` gehört sie dem aufrufenden Benutzer.
+**4. Ein `sed`-Ersatz mit `&` hat die getestete Datei zerstört.**
+Beim Korrigieren des Wrappers wurde `&` in der Ersetzung als „der ganze Treffer“
+interpretiert. Die Zeile wurde unbrauchbar, und ein Folgelauf hat `restore-test.sh`
+überschrieben. Die Datei wurde aus `.bak-20261025` wiederhergestellt (Hash identisch mit
+`/opt/restore-test/restore-test.sh`). Lehre: `&` in sed-Ersetzungen escapen (`\&`) und
+vor dem Editieren eine Kopie ziehen.
 
 ## Offene Punkte
 
-- [ ] Restore einmal gegen die echte Produktion durchführen und hier protokollieren
-- [ ] Zeitplan und Ablage festlegen
-- [ ] Aufbewahrung entscheiden (Skript-Default: 14 Tage)
-- [ ] Verschlüsselung der Sicherungen
-- [ ] Warnung, wenn das letzte Backup älter als 48 Stunden ist
-- [ ] Prüfen, ob der Dump ohne das Content-Volume vollständig ist (und umgekehrt)
+- [ ] Offsite-Kopie (zweiter Host oder Object Storage) – aktuell nur lokal
+- [ ] Verschlüsselung der Sicherungen; das Paperless-Tarball enthält `.env`
+- [ ] Monitoring für das Ghost-Backup (Healthchecks-Ping wie bei Paperless)
+- [ ] RPO/RTO festlegen: wie viel Datenverlust ist akzeptabel, wie lange darf der Restore dauern?
+- [ ] Restore auf einem **anderen** Host testen, nicht nur auf demselben
+- [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version laufen lassen, nicht `latest`
+- [ ] Aufbewahrung als Policy dokumentieren (7+4 Wochen, 14 Tage)
