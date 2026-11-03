@@ -60,6 +60,11 @@ Paperless-Tarballs und den Ghost-Dump.
 **Ergebnis über Tailscale (03.11.2026):** 957 MB in 5:51 Minuten über
 `<TAILSCALE_IP>`, Ghost-Backup 8 h alt, verschlüsselt, `OK`.
 
+**Archivtest 03.11.2026:** Ghost-Content (`apps/`, `data/`, `settings/`) und Ghost-DB
+(101 `CREATE TABLE`) aus dem Offsite-Archiv gelesen; Paperless-Tar lesbar. Kein
+vollständiger Service-Restore aus der Kopie – die Server-Restore-Tests decken das
+Verfahren ab.
+
 ## Verschlüsselung
 
 - `age` verschlüsselt das Tar lokal; der private Key bleibt auf diesem Rechner.
@@ -85,12 +90,12 @@ diese Kopie ist die kalte Offsite-Kopie.
 Systemd-Timer auf dem Linux-Rechner (als `tobi`):
 
 ```bash
-mkdir -p ~/.config/systemd/user
-cp ~/dsh-spielwiese/homelab/scripts/systemd/homelab-backup.* ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now homelab-backup.timer
-systemctl --user list-timers homelab-backup.timer
+./scripts/install-offsite-timer.sh
 ```
+
+Der Installer kopiert die Units nach `~/.config/systemd/user`, lädt den User-Daemon und
+aktiviert den Timer. Im dsh-Container bricht er bewusst ab, weil dort kein user-systemd
+läuft.
 
 Der Timer läuft täglich um 05:30 mit `Persistent=true`: War der Rechner aus, wird der
 Lauf nach dem nächsten Login nachgeholt. Der Service setzt `SERVER=<TAILSCALE_IP>` und

@@ -98,9 +98,10 @@ Restore-Test erfolgreich in 47 Sekunden
 
 Keine Reste: keine Testcontainer, -volumes oder -netze nach dem Lauf.
 
-**Monitoring:** `/opt/backups/check-ghost-backup.sh` läuft täglich um 05:00. Es prüft das
-neueste `ghost-db-*.sql.gz`; bei mehr als 26 Stunden oder fehlendem Backup sendet es eine
-ntfy-Nachricht. Test am 03.11.: normal `ok (8h)`, künstlich 72 h → Alarm.
+**Monitoring:** `/opt/backups/check-ghost-backup.sh` läuft täglich um 05:00. Es prüft
+DB-Dump und Content-Archiv: fehlt eines, ist der Content älter als der DB-Dump oder ist
+das Backup älter als 26 Stunden, kommt eine ntfy-Nachricht. Test am 03.11.: normal `ok`,
+ohne Content und mit zu altem Content jeweils Alarm.
 
 ## Skripte im Repo
 
@@ -139,6 +140,27 @@ interpretiert. Die Zeile wurde unbrauchbar, und ein Folgelauf hat `restore-test.
 überschrieben. Die Datei wurde aus `.bak-20261025` wiederhergestellt (Hash identisch mit
 `/opt/restore-test/restore-test.sh`). Lehre: `&` in sed-Ersetzungen escapen (`\&`) und
 vor dem Editieren eine Kopie ziehen.
+
+## RPO, RTO und Aufbewahrung
+
+| | Paperless | Ghost | Offsite |
+|---|---|---|---|
+| RPO (Ziel) | 24 h | 24 h | 24 h (Pull 05:30) |
+| RTO technisch | 43 s (gemessen) | 47 s (gemessen) | Download + Entschlüsselung, ~6 min (gemessen) |
+| Aufbewahrung | 7 täglich + 4 wöchentlich | 14 täglich | 7 Archive (Service) |
+| Ablage | `/opt/backups/paperless` | `/opt/kisium/backups` | `~/dsh-spielwiese/.offsite/backups` |
+
+- **RPO** = maximaler Datenverlust. Gesichert wird täglich 03:00/03:30; ein Ausfall kurz
+  vor dem Lauf kostet bis zu 24 Stunden.
+- **RTO** = technische Wiederherstellung. 43 s und 47 s sind die gemessenen
+  Restore-Tests. Erkennung und Entscheidung sind nicht gemessen; realistisch sind
+  30–60 Minuten bis zur bewussten Wiederherstellung.
+- **Offsite-RPO** hängt am Linux-Host: Ist er aus, wird der Pull beim nächsten Start
+  nachgeholt (`Persistent=true`), der Offsite-Stand ist dann älter.
+- **Aufbewahrung:** Paperless 7 Tage + 4 Wochen, Ghost 14 Tage, Offsite 7 Archive.
+  Jedes Offsite-Archiv enthält alle Server-Backups und ist deshalb ~1 GB.
+- **Nicht abgedeckt:** Änderungen zwischen zwei Backups, Totalverlust des Linux-Hosts
+  ohne age-Key, Restore auf fremder Hardware.
 
 ## Offene Punkte
 
