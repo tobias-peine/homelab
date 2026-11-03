@@ -32,10 +32,12 @@ for cmd in docker curl openssl; do
   command -v "$cmd" >/dev/null 2>&1 || die "$cmd fehlt"
 done
 
+# shellcheck disable=SC2012  # Dateinamen werden vom Backup-Skript erzeugt (Timestamp)
 DUMP="${DUMP:-$(ls -t "$BACKUP_DIR"/ghost-db-*.sql.gz 2>/dev/null | head -1 || true)}"
+# shellcheck disable=SC2012
 CONTENT="${CONTENT:-$(ls -t "$BACKUP_DIR"/ghost-content-*.tar.gz 2>/dev/null | head -1 || true)}"
-[ -n "$DUMP" ] && [ -f "$DUMP" ] || die "kein Dump gefunden (DUMP=... setzen)"
-[ -n "$CONTENT" ] && [ -f "$CONTENT" ] || die "kein Content-Archiv gefunden (CONTENT=... setzen)"
+if [ -z "$DUMP" ] || [ ! -f "$DUMP" ]; then die "kein Dump gefunden (DUMP=... setzen)"; fi
+if [ -z "$CONTENT" ] || [ ! -f "$CONTENT" ]; then die "kein Content-Archiv gefunden (CONTENT=... setzen)"; fi
 
 # Port belegt? (ss ist auf Debian/Ubuntu vorhanden; sonst überspringen)
 if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$PORT" 2>/dev/null | grep -q LISTEN; then
@@ -102,8 +104,8 @@ dc down -v >/dev/null 2>&1 || true
 docker volume rm "${PROJECT}_ghost_content" >/dev/null 2>&1 || true
 
 wait_healthy() {
-  local svc="$1" id state i
-  for i in $(seq 1 60); do
+  local svc="$1" id state
+  for _ in $(seq 1 60); do
     id="$(dc ps -q "$svc" 2>/dev/null || true)"
     if [ -n "$id" ]; then
       state="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null || true)"
@@ -133,6 +135,7 @@ wait_healthy mysql
 
 # --- 2) Import --------------------------------------------------------------
 log "Importiere $(basename "$DUMP")"
+# shellcheck disable=SC2016  # $MYSQL_ROOT_PASSWORD expandiert im Container, nicht auf dem Host
 zcat "$DUMP" | dc exec -T mysql sh -c \
   'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ghost'
 

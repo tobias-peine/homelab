@@ -49,7 +49,7 @@ use="$(df -P "$ROOT_DIR" | awk 'NR==2 {gsub("%","",$5); print $5}')"
 if [ "${use:-0}" -ge 90 ]; then bad "Platte zu ${use}% belegt"; elif [ "${use:-0}" -ge 80 ]; then note "Platte zu ${use}% belegt"; else ok "Platte zu ${use}% belegt"; fi
 
 # --- Zombies ----------------------------------------------------------------
-zombies="$(ps -eo stat= 2>/dev/null | grep -c '^Z' || true)"
+zombies="$(ps -eo stat= 2>/dev/null | awk '$1 ~ /^Z/ {n++} END {print n+0}')"
 if [ "${zombies:-0}" -gt 0 ]; then note "$zombies Zombie-Prozesse"; else ok "keine Zombies"; fi
 
 # --- Swap -------------------------------------------------------------------

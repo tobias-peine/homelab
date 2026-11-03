@@ -59,10 +59,10 @@ Die Swap-Zeile heißt je nach Locale „Auslager:“ – deshalb `LC_ALL=C` im S
 - Zugangsdaten nur aus der Umgebung oder `.env`, nie als Argument.
 - Prüfungen im selben Skript, nicht in der Erinnerung.
 - Exit-Code 0 nur, wenn die harten Prüfungen bestanden sind.
+- `shellcheck -S warning` ohne Befund (v0.10.0).
 
 ## Offen
 
 - [ ] Zeitplan (cron oder systemd-Timer) und Ablage festlegen
 - [ ] Benachrichtigung bei Fehlschlag
 - [ ] Verschlüsselung der Sicherungen
-- [ ] `shellcheck` in den Lauf aufnehmen (auf dem Testhost nicht installiert)

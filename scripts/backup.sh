@@ -44,6 +44,7 @@ chmod 700 "$BACKUP_DIR"
 
 # --- Datenbank --------------------------------------------------------------
 log "Sichere Datenbank nach $DB_FILE"
+# shellcheck disable=SC2016  # $MYSQL_ROOT_PASSWORD expandiert im Container, nicht auf dem Host
 dc exec -T "$MYSQL_SERVICE" sh -c \
   'exec mysqldump --single-transaction --routines --triggers \
    -uroot -p"$MYSQL_ROOT_PASSWORD" ghost' \
