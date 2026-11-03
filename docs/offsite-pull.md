@@ -98,8 +98,16 @@ aktiviert den Timer. Im dsh-Container bricht er bewusst ab, weil dort kein user-
 läuft.
 
 Der Timer läuft täglich um 05:30 mit `Persistent=true`: War der Rechner aus, wird der
-Lauf nach dem nächsten Login nachgeholt. Der Service setzt `SERVER=<TAILSCALE_IP>` und
-`KEEP=7` (sieben Archive, ca. 6,7 GB). Wenn der Timer auch ohne Login laufen soll:
+Lauf nach dem nächsten Login nachgeholt. Der Service liest `SERVER` aus
+`~/.offsite/backup.env` und setzt `KEEP=7` (sieben Archive, ca. 6,7 GB). Die Datei
+einmal anlegen:
+
+```bash
+printf 'SERVER=%s\n' '<TAILSCALE_IP>' > ~/dsh-spielwiese/.offsite/backup.env
+chmod 600 ~/dsh-spielwiese/.offsite/backup.env
+```
+
+Wenn der Timer auch ohne Login laufen soll:
 
 ```bash
 sudo loginctl enable-linger tobi

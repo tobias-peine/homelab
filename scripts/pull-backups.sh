@@ -11,9 +11,9 @@
 set -Eeuo pipefail
 umask 077
 
-SERVER="${SERVER:-<TAILSCALE_IP>}"
-REMOTE_USER="${REMOTE_USER:-admin}"
 OFFSITE_DIR="${OFFSITE_DIR:-$HOME/dsh-spielwiese/.offsite}"
+SERVER="${SERVER:-$(cat "$OFFSITE_DIR/server" 2>/dev/null || echo '<TAILSCALE_IP>')}"
+REMOTE_USER="${REMOTE_USER:-admin}"
 DEST="${DEST:-$OFFSITE_DIR/backups}"
 KEY="${SSH_KEY:-$OFFSITE_DIR/id_ed25519}"
 AGE_BIN="${AGE_BIN:-$OFFSITE_DIR/bin/age}"

@@ -89,8 +89,9 @@ Swap-Zeile je nach Locale „Auslager:“ heißt.
 
 ```bash
 ./scripts/pull-backups.sh
-SERVER=<TAILSCALE_IP> ./scripts/pull-backups.sh
 ```
+
+Der Server wird aus `~/.offsite/server` gelesen; `SERVER=` überschreibt ihn.
 
 Zieht Paperless- und Ghost-Backups als ein Tar auf den Linux-Rechner, prüft das Alter des
 Ghost-Backups, verschlüsselt lokal mit `age` und schickt bei Fehlern einen ntfy-Ping.
