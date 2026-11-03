@@ -11,7 +11,7 @@ gegen eine Wegwerf-Instanz getestet – nicht gegen die Produktion.
 | Ghost | täglich 03:00 | MySQL-Dump, `ghost_content` | 14 Tage | manuell / `scripts/restore-test.sh` |
 
 Beide Sicherungen liegen lokal unter `/opt/backups/paperless` bzw. `/opt/kisium/backups`.
-Für Offsite zieht der PC die Archive per [`scripts/pull-backups.ps1`](../scripts/pull-backups.ps1)
+Für Offsite zieht der Linux-Rechner die Archive per [`scripts/pull-backups.sh`](../scripts/pull-backups.sh)
 und verschlüsselt sie mit `age`. Das Skript liegt bereit; der erste Lauf auf dem PC steht
 noch aus. Details: [offsite-pull.md](offsite-pull.md).
 
