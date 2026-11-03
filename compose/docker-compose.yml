@@ -20,6 +20,14 @@ services:
     init: true
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     restart: unless-stopped
     depends_on:
       mysql:
@@ -65,6 +73,14 @@ services:
     container_name: kisium-mysql
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     restart: unless-stopped
     command:
       - --character-set-server=utf8mb4
