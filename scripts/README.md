@@ -6,7 +6,8 @@
 | [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 47 s |
 | [`health-check.sh`](health-check.sh) | Container, HTTP, Platte, Zombies, Swap prüfen | getestet 03.11.2026 |
 | [`pull-backups.sh`](pull-backups.sh) | Offsite-Pull auf den Linux-Rechner, age, Ghost-Alter prüfen | getestet 03.11.2026, 957 MB |
-| [`check-backup-age.sh`](check-backup-age.sh) | Ghost-Backup-Alter prüfen, bei > 26 h per ntfy alarmieren | getestet 03.11.2026 |
+| [`check-backup-age.sh`](check-backup-age.sh) | Ghost-Backup (DB + Content) prüfen, bei Lücke/ > 26 h per ntfy alarmieren | getestet 03.11.2026 |
+| [`install-offsite-timer.sh`](install-offsite-timer.sh) | systemd-User-Timer für den Offsite-Pull installieren | Skript bereit |
 
 ## In der Produktion
 
@@ -113,10 +114,20 @@ systemctl --user enable --now homelab-backup.timer
 BACKUP_DIR=/opt/kisium/backups MAX_AGE_H=26 ./scripts/check-backup-age.sh
 ```
 
-Prüft das neueste `ghost-db-*.sql.gz`; bei mehr als 26 Stunden oder fehlendem Backup
-sendet es eine ntfy-Nachricht und endet mit 1. Auf dem Server liegt es als
-`/opt/backups/check-ghost-backup.sh`, Cron 05:00. Test am 03.11.: normal `ok (8h)`,
-künstlich 72 h → Alarm.
+Prüft DB-Dump und Content-Archiv; fehlt eines, ist der Content älter als der DB-Dump
+oder ist das Backup älter als 26 Stunden, sendet es eine ntfy-Nachricht und endet mit 1.
+Auf dem Server liegt es als `/opt/backups/check-ghost-backup.sh`, Cron 05:00. Test am
+03.11.: normal `ok`, ohne Content und mit zu altem Content jeweils Alarm.
+
+## install-offsite-timer.sh
+
+```bash
+./scripts/install-offsite-timer.sh
+```
+
+Kopiert die Units nach `~/.config/systemd/user`, lädt den User-Daemon neu und aktiviert
+den Timer. Bricht ab, wenn kein user-systemd erreichbar ist (z. B. im dsh-Container).
+Danach: `systemctl --user list-timers homelab-backup.timer`.
 
 ## Anforderungen
 

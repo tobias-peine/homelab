@@ -19,17 +19,27 @@ TOPIC="$(tr -d '[:space:]' < "$TOPIC_FILE")"
 [ -n "$TOPIC" ] || { echo "FEHLER: ntfy-Thema leer"; exit 1; }
 
 LATEST="$(ls -1t "$BACKUP_DIR"/ghost-db-*.sql.gz 2>/dev/null | head -n 1 || true)"
-if [ -z "$LATEST" ]; then
-  curl -fsS --max-time 15 -d "Homelab: kein Ghost-Backup gefunden" "https://ntfy.sh/$TOPIC" >/dev/null || true
-  echo "FEHLER: kein Ghost-Backup in $BACKUP_DIR"
+CONTENT="$(ls -1t "$BACKUP_DIR"/ghost-content-*.tar.gz 2>/dev/null | head -n 1 || true)"
+if [ -z "$LATEST" ] || [ -z "$CONTENT" ]; then
+  MSG="Homelab: Ghost-Backup unvollständig (DB: ${LATEST:-fehlt}, Content: ${CONTENT:-fehlt})"
+  curl -fsS --max-time 15 -d "$MSG" "https://ntfy.sh/$TOPIC" >/dev/null || true
+  echo "FEHLER: $MSG"
   exit 1
 fi
 
-AGE_H=$(( ( $(date +%s) - $(stat -c %Y "$LATEST") ) / 3600 ))
+DB_TS="$(stat -c %Y "$LATEST")"
+CONTENT_TS="$(stat -c %Y "$CONTENT")"
+if [ "$CONTENT_TS" -lt $((DB_TS - 60)) ]; then
+  curl -fsS --max-time 15 -d "Homelab: Ghost-Content aelter als DB-Dump" "https://ntfy.sh/$TOPIC" >/dev/null || true
+  echo "FEHLER: Content aelter als DB ($(basename "$CONTENT"))"
+  exit 1
+fi
+
+AGE_H=$(( ( $(date +%s) - DB_TS ) / 3600 ))
 if [ "$AGE_H" -gt "$MAX_AGE_H" ]; then
   curl -fsS --max-time 15 -d "Homelab: Ghost-Backup ist ${AGE_H}h alt" "https://ntfy.sh/$TOPIC" >/dev/null || true
   echo "FEHLER: Ghost-Backup zu alt: ${AGE_H}h ($LATEST)"
   exit 1
 fi
 
-echo "ok: $(basename "$LATEST") (${AGE_H}h)"
+echo "ok: $(basename "$LATEST") + $(basename "$CONTENT") (${AGE_H}h)"
