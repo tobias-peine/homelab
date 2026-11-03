@@ -140,6 +140,7 @@ Danach: `systemctl --user list-timers homelab-backup.timer`.
 
 ## Offen
 
-- [ ] systemd-Timer auf dem Linux-Rechner installieren
-- [ ] `age`-Private-Key zusätzlich in den Passwortmanager legen
+- [x] systemd-Timer auf dem Linux-Rechner installieren (03.11.2026)
+- [x] `age`-Private-Key zusätzlich in den Passwortmanager legen (03.11.2026)
 - [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version
+- [ ] Dritte Kopie (3-2-1)

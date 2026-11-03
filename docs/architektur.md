@@ -141,7 +141,5 @@ Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen B
 ## Offene Punkte
 
 - [ ] NPM läuft als root für 80/443; Open WebUI und Ollama sind non-root.
-- [ ] Offsite-Timer auf dem Linux-Host installieren; der Pull läuft manuell über
-      Tailscale.
-- [ ] Monitoring-Ping für das Ghost-Backup (serverseitig; ntfy im Pull-Skript
-      vorhanden).
+- [ ] Dritte Kopie (3-2-1) fehlt; VPS und Linux-Host sind zwei Kopien.
+- [ ] Restore auf einem anderen Host testen, nicht nur auf demselben.

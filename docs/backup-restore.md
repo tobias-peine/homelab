@@ -164,9 +164,10 @@ vor dem Editieren eine Kopie ziehen.
 
 ## Offene Punkte
 
-- [ ] systemd-Timer auf dem Linux-Rechner einrichten (Skript und Units liegen bereit)
-- [ ] `age`-Private-Key zusätzlich in den Passwortmanager kopieren
-- [ ] RPO/RTO festlegen: wie viel Datenverlust ist akzeptabel, wie lange darf der Restore dauern?
+- [x] systemd-Timer auf dem Linux-Rechner einrichten (03.11.2026)
+- [x] `age`-Private-Key zusätzlich in den Passwortmanager kopieren (03.11.2026)
+- [x] RPO/RTO festlegen (Werte im Abschnitt „RPO, RTO und Aufbewahrung“)
 - [ ] Restore auf einem **anderen** Host testen, nicht nur auf demselben
 - [ ] Paperless-Restore-Test gegen eine gepinnte Image-Version laufen lassen, nicht `latest`
-- [ ] Aufbewahrung als Policy dokumentieren (7+4 Wochen, 14 Tage)
+- [x] Aufbewahrung als Policy dokumentieren (7+4 Wochen, 14 Tage, 7 Offsite-Archive)
+- [ ] Dritte Kopie (3-2-1): VPS und Linux-Host sind zwei Kopien
