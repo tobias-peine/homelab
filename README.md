@@ -1,84 +1,107 @@
-# Homelab
+# Homelab – ein VPS, Docker und die Doku dazu
 
-Ein VPS (8 GB RAM, 4 vCores, Debian/Ubuntu), Docker, ein Reverse Proxy auf dem Host –
-und die Dienste, die ich täglich benutze. Hier steht, was läuft, **warum** es so aufgebaut
-ist und was dabei schiefging.
+Ein Blog braucht mehr als einen Container: TLS, eine Datenbank, Backups und Updates.
+Dieses Repo dokumentiert, wie ich das auf einem einzelnen VPS betreibe – inklusive der
+Stellen, die noch offen sind.
 
-Der ausführliche Erfahrungsbericht: **[Mein Homelab – drei teure Fehler](https://kisium.de/mein-homelab/)**
+> **Stand:** 03.11.2026. Belegt sind Compose-Datei, HTTP-Header und ein Blick auf den
+> Server. Was ich nicht belegen kann, steht als `TODO` – nicht als Behauptung.
 
-## Aufbau
+## Architektur
 
-```
-Internet
-   │  443 / 80
-   ▼
-Reverse Proxy auf dem Host (openresty) ──► TLS, Weiterleitungen, Rate-Limits
-   │  127.0.0.1:2368
-   ▼
-┌──────────────────────────── Docker: kisium-net ────────────────────────────┐
-│                                                                            │
-│   ghost:6-alpine  ──────────►  mysql:8.4                                   │
-│   (Blog, Port nur lokal)       (utf8mb4, Healthcheck)                      │
-│                                                                            │
-│   Volumes: ghost_content, mysql_data                                       │
-└────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    U[Browser] -->|HTTPS 443| P[Reverse Proxy<br/>openresty / NPM]
+    P -->|127.0.0.1:2368| G[Ghost 6<br/>kisium-ghost]
+    G -->|3306, nur kisium-net| D[(MySQL 8.4<br/>kisium-mysql)]
+    G --- V1[(Volume ghost_content)]
+    D --- V2[(Volume mysql_data)]
 ```
 
-## Warum es so aussieht
+| Dienst | Zweck | Port intern | erreichbar über |
+|---|---|---|---|
+| Reverse Proxy (openresty / NPM) | TLS, HTTP→HTTPS, Routing | 80, 443 | öffentlich |
+| Ghost 6 | Blog | `127.0.0.1:2368` | nur über den Proxy |
+| MySQL 8.4 | Datenbank | 3306 im Netz `kisium-net` | nicht von außen |
+| n8n | Automatisierung | `TODO` | `TODO` |
+| Paperless | Dokumentenarchiv | `TODO` | `TODO` |
+| Ollama + Open WebUI | lokale Modelle | `TODO` | `TODO` |
 
-**Der Port ist an `127.0.0.1` gebunden, nicht an `0.0.0.0`.**
-`"127.0.0.1:2368:2368"` heißt: Von außen kommt niemand an Ghost vorbei. Der einzige
-Weg hinein führt über den Reverse Proxy, der TLS terminiert und die Header setzt.
-Hätte ich `"2368:2368"` geschrieben, wäre Ghost direkt im Internet erreichbar – ohne
-TLS davor.
+Die letzten drei Dienste laufen laut Blogartikel auf derselben Maschine, ihre
+Compose-Dateien sind aber nicht in diesem Repo. Deshalb `TODO` statt geratener Ports.
+Details: [docs/architektur.md](docs/architektur.md).
 
-**MySQL hat einen Healthcheck, Ghost wartet darauf.**
-`depends_on: condition: service_healthy` verhindert den klassischen Fehler, dass Ghost
-startet, bevor die Datenbank antwortet – und dann in einer Neustart-Schleife hängt.
+## Sicherheit
 
-**Alle Geheimnisse kommen aus `.env`.**
-Kein Passwort steht in dieser Datei. `${MYSQL_PASSWORD:?...}` bricht den Start ab, wenn die
-Variable fehlt, statt mit einem leeren Passwort weiterzulaufen. Das ist der Unterschied
-zwischen „funktioniert zufällig" und „funktioniert auch morgen noch".
+- **Ghost lauscht nur auf `127.0.0.1:2368`.** Der Port ist nicht im Internet erreichbar;
+  jeder Zugriff muss über den Proxy mit TLS laufen. Ohne diese Bindung wäre der Blog
+  zusätzlich per HTTP und ohne Proxy-Regeln erreichbar.
+- **MySQL veröffentlicht keinen Port.** Die Datenbank ist nur im Docker-Netz
+  `kisium-net` ansprechbar. Ein offener 3306-Port ist einer der häufigsten Funde bei
+  automatisierten Scans.
+- **Zugangsdaten stehen nur in `.env`.** `${MYSQL_PASSWORD:?…}` bricht den Start ab,
+  wenn ein Wert fehlt – statt mit einem leeren Passwort weiterzulaufen. Die Datei ist
+  per `.gitignore` ausgeschlossen.
+- **TLS endet am Proxy, HTTP wird umgeleitet.** Das Zertifikat ist von Let's Encrypt
+  (gültig bis 30.01.2027); `http://` antwortet mit `301` auf HTTPS.
+- **Keine Daten an Dritte.** Gravatar, Update-Ping und RPC sind in Ghost abgeschaltet.
+  Ein Blog über den eigenen Weg muss nicht nebenbei verraten, wer ihn liest.
+- **Healthcheck vor Abhängigkeit.** Ghost startet erst, wenn MySQL
+  `service_healthy` meldet. Das verhindert eine Neustart-Schleife beim Booten.
 
-**Keine Daten an Dritte.**
-Gravatar, Update-Ping und RPC sind ausgeschaltet. Ein Blog über den eigenen Weg muss nicht
-nebenbei verraten, wer ihn liest.
+**Noch nicht umgesetzt** (siehe [docs/hardening.md](docs/hardening.md)): HSTS-Header,
+SSH-Härtung, Firewall, automatische Updates, `cap_drop`/`no-new-privileges` in diesem
+Compose. Diese Punkte sind als offen markiert, nicht als erledigt.
+
+## Backup & Recovery
+
+Gesichert werden die MySQL-Datenbank und das Volume `ghost_content`. Der Restore ist in
+[docs/backup-restore.md](docs/backup-restore.md) als nummerierter Ablauf mit
+Erwartungswerten beschrieben. Ein protokollierter Durchlauf mit Datum und Messwerten
+fehlt noch – ohne ihn ist ein Backup nur eine Annahme.
+
+## Betrieb
+
+```bash
+cd compose
+cp .env.example .env          # Werte eintragen, danach: chmod 600 .env
+docker compose up -d
+docker compose ps             # Healthchecks beobachten
+docker compose logs -f ghost  # Logs
+```
+
+**Update:**
+
+```bash
+cd compose
+docker compose pull
+docker compose up -d
+```
+
+Vor einem Ghost-Major-Upgrade: Backup anlegen und den Restore-Test wiederholen.
+MySQL bleibt auf `8.4` – ein Sprung auf eine neue Major-Version ist ein eigener Vorgang.
 
 ## Was ich dabei gelernt habe
 
-**1. Ein Container ist keine Sicherheitsgrenze per Default.**
-Mein erster Container lief zwei Monate als `root`. Seitdem: eigener Benutzer,
-`no-new-privileges`, read-only-Mounts wo möglich.
+1. **Ein Container ist keine Sicherheitsgrenze per Default.** Ohne `USER` läuft der
+   Prozess als root. Bei offiziellen Images ist der User vorgegeben – nachsehen, nicht
+   annehmen: `docker inspect <container> --format '{{.Config.User}}'`.
+2. **Der Fehler lag selten da, wo ich gesucht habe.** Der Dienst lief im Container,
+   war von außen aber nicht erreichbar – die Anwendung lauschte auf Loopback, der
+   Port-Proxy kam aus dem Bridge-Netz. Seitdem prüfe ich von außen nach innen:
+   DNS → Port → Proxy → Container → Anwendung.
+3. **Ein Backup ohne Restore-Test ist kein Backup.** Ein Skript, das ohne Fehler
+   durchläuft, beweist nur, dass es durchläuft. Erst das Zurückspielen zeigt, ob die
+   Daten vollständig sind.
+4. **Zombie-Prozesse sind ein Symptom.** Auf der Maschine standen am 02.11.2026
+   1.057 Zombies, der Swap war zu 48 % belegt. Die Ursache ist noch nicht gefunden –
+   das steht als offener Punkt in [docs/lessons-learned.md](docs/lessons-learned.md).
 
-**2. Ein Backup ohne Restore-Test ist kein Backup.**
-Ich habe den Dienst gelöscht, zurückgespielt und die Zeit gestoppt. Erst danach wusste ich,
-dass es funktioniert.
+## Verweise
 
-**3. Debuggen von außen nach innen.**
-DNS → Port → Proxy → Container → Anwendung. Zwei Stunden habe ich einmal in der Anwendung
-gesucht, dabei war der DNS-Eintrag falsch.
-
-**4. Zombie-Prozesse sind ein Symptom, keine Randnotiz.**
-Auf dem Server standen zeitweise über tausend Zombies und der Swap lief voll. Ursache war
-ein Dienst, der Kindprozesse startete und nicht einsammelte. Wer nur auf die CPU schaut,
-findet das nie.
-
-## Loslegen
-
-```bash
-cp .env.example .env
-# Werte eintragen
-docker compose up -d
-docker compose ps        # Healthchecks beobachten
-```
-
-## Offene Punkte
-
-- [ ] Backup-Skript mit automatischem Restore-Test veröffentlichen
-- [ ] Monitoring-Alarme dokumentieren
-- [ ] Reverse-Proxy-Konfiguration (bereinigt) ergänzen
-
----
-
-Geschrieben von [Tobias Peine](https://kisium.de) – Quereinstieg in die IT.
+- Blog: [kisium.de](https://kisium.de) – Erfahrungsbericht
+  [Mein Homelab – drei teure Fehler](https://kisium.de/mein-homelab/)
+- [docs/architektur.md](docs/architektur.md) – Komponenten, Ports, Netzwerk
+- [docs/hardening.md](docs/hardening.md) – Maßnahmen, Begründung, Lücken
+- [docs/backup-restore.md](docs/backup-restore.md) – Strategie und Restore-Ablauf
+- [docs/lessons-learned.md](docs/lessons-learned.md) – Fehler und was daraus wurde
