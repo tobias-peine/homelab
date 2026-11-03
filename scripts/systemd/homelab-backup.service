@@ -5,5 +5,6 @@ Description=Homelab Offsite-Backup vom VPS ziehen
 Type=oneshot
 ExecStart=%h/dsh-spielwiese/homelab/scripts/pull-backups.sh
 Environment=KEEP=7
+Environment=SERVER=<TAILSCALE_IP>
 Nice=10
 IOSchedulingClass=idle

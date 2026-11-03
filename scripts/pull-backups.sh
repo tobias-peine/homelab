@@ -11,7 +11,7 @@
 set -Eeuo pipefail
 umask 077
 
-SERVER="${SERVER:-vps2662496.fastwebserver.de}"
+SERVER="${SERVER:-<TAILSCALE_IP>}"
 REMOTE_USER="${REMOTE_USER:-admin}"
 OFFSITE_DIR="${OFFSITE_DIR:-$HOME/dsh-spielwiese/.offsite}"
 DEST="${DEST:-$OFFSITE_DIR/backups}"
