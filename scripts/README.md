@@ -1,37 +1,68 @@
 # Skripte
 
-Backup, Restore-Test und Health-Check – hier ist noch keins davon. Dieser Ordner
-beschreibt, was hinein gehört und welche Bedingungen ein Skript erfüllen muss, bevor es
-als „funktioniert“ gilt.
-
-## Geplant
-
-| Skript | Aufgabe | Status |
+| Skript | Aufgabe | Stand |
 |---|---|---|
-| `backup.sh` | MySQL-Dump und Content-Volume sichern, prüfen, ablegen | `TODO` |
-| `restore-test.sh` | Sicherung in ein Wegwerf-Projekt zurückspielen und prüfen | `TODO` |
-| `health-check.sh` | Container-Status, HTTP-Status, Plattenplatz, Zombies | `TODO` |
+| [`backup.sh`](backup.sh) | MySQL-Dump und Content-Volume sichern, prüfen, aufbewahren | getestet 03.11.2026 |
+| [`restore-test.sh`](restore-test.sh) | Sicherung in ein Wegwerf-Projekt zurückspielen und vergleichen | getestet 03.11.2026, 43 s |
+| [`health-check.sh`](health-check.sh) | Container, HTTP, Platte, Zombies, Swap prüfen | getestet 03.11.2026 |
+
+## backup.sh
+
+```bash
+./scripts/backup.sh
+BACKUP_DIR=/srv/backups RETENTION_DAYS=30 ./scripts/backup.sh
+```
+
+Sichert `ghost` per `mysqldump --single-transaction` und das Content-Volume per
+`tar`. Schreibt zuerst in `.tmp`, prüft gzip und `CREATE TABLE`, benennt erst dann um.
+Legt eine SHA-256-Datei ab und entfernt Sicherungen, die älter als `RETENTION_DAYS`
+sind (Default 14).
+
+Beim Test: 29 KB Dump, 3,7 KB Content, Prüfsummen ok. Die Content-Datei gehörte
+zunächst `nobody` – behoben mit `--user "$(id -u):$(id -g)"`.
+
+## restore-test.sh
+
+```bash
+./scripts/restore-test.sh
+PORT=2371 PROJECT=homelabrestore2 SOURCE_MYSQL=kisium-mysql ./scripts/restore-test.sh
+KEEP=1 ./scripts/restore-test.sh     # Testumgebung stehen lassen
+```
+
+Spielt die neueste Sicherung in ein eigenes Compose-Projekt: eigenes Netz, eigene
+Volumes, eigener Port. Entfernt dafür `name: kisium-net`, `container_name` und den
+Produktions-Port aus der Compose-Datei. Bricht ab, wenn `PROJECT=kisium` gesetzt ist,
+der Port belegt ist oder die Prüfsummen nicht passen. Vergleicht am Ende
+Beitrags- und Benutzerzahl mit der Quelle und räumt auf.
+
+Beim Test: 43 Sekunden, HTTP 200, posts 2 = 2, users 1 = 1, settings 129 = 129.
+
+**Wichtig:** Das ist ein Test gegen eine Wegwerf-Instanz, kein Produktions-Restore.
+
+## health-check.sh
+
+```bash
+./scripts/health-check.sh
+HTTP_URL=http://127.0.0.1:2368/ ./scripts/health-check.sh
+```
+
+Prüft Container-Status und Health, HTTP-Code, Plattenbelegung, Zombie-Prozesse und
+Swap. Exit 0 = ok (auch mit Warnungen), Exit 1 = harter Fehler (Container aus, HTTP
+nicht 200).
+
+Beim Test: beide Container healthy, HTTP 200, Platte 23 %, keine Zombies, Swap 0 %.
+Die Swap-Zeile heißt je nach Locale „Auslager:“ – deshalb `LC_ALL=C` im Skript.
 
 ## Anforderungen
 
-- `set -euo pipefail` – ein Fehler muss den Lauf beenden, nicht überspringen.
-- Zugangsdaten nur aus Umgebungsvariablen oder einer Datei mit `chmod 600`, nie als
-  Argument (Argumente stehen in der Prozessliste und im Shell-Verlauf).
-- Jeder Lauf schreibt eine Zeile mit Zeitstempel, Ergebnis und Dauer in ein Log.
-- Exit-Code 0 nur, wenn alle Prüfungen bestanden sind.
-- Wiederholbar: ein zweiter Lauf darf nichts kaputt machen.
-- Nach dem Backup: prüfen, dass die Datei nicht leer ist und der Dump lesbar ist.
+- `set -Eeuo pipefail` – ein Fehler beendet den Lauf.
+- Zugangsdaten nur aus der Umgebung oder `.env`, nie als Argument.
+- Prüfungen im selben Skript, nicht in der Erinnerung.
+- Exit-Code 0 nur, wenn die harten Prüfungen bestanden sind.
 
-## Warum das nicht schnell hingeschrieben ist
+## Offen
 
-Ein Backup-Skript, das nur `mysqldump` aufruft, sieht richtig aus und ist es oft nicht:
-Fehlt der Dump wegen eines falschen Passworts, ist die Datei trotzdem da – nur leer.
-Deshalb gehört die Kontrolle in dasselbe Skript, nicht in die Erinnerung.
-
-## TODO
-
-- [ ] `backup.sh` schreiben und gegen die laufende Instanz testen
-- [ ] `restore-test.sh` schreiben (Ablauf: [docs/backup-restore.md](../docs/backup-restore.md))
-- [ ] `health-check.sh` schreiben (Zombies, Swap, HTTP-Status)
-- [ ] Zeitplan festlegen (cron oder systemd-Timer) und dokumentieren
-- [ ] Benachrichtigung bei Fehlschlag einbauen
+- [ ] Zeitplan (cron oder systemd-Timer) und Ablage festlegen
+- [ ] Benachrichtigung bei Fehlschlag
+- [ ] Verschlüsselung der Sicherungen
+- [ ] `shellcheck` in den Lauf aufnehmen (auf dem Testhost nicht installiert)
