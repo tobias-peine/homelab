@@ -1,0 +1,25 @@
+name: homepage
+
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Muss exakt der Host sein, unter dem der Browser aufruft - sonst 400.
+      HOMEPAGE_ALLOWED_HOSTS: ${DASH_HOST}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./config:/app/config
+      # Lesend: das Dashboard zeigt Container-Status, steuert aber nichts.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - homeserver
+
+networks:
+  # Bestehendes Netz der Stack-Compose; kein zweites Netz aufspannen.
+  homeserver:
+    external: true
+    name: homeserver_default

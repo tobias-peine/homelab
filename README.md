@@ -1,10 +1,10 @@
-# Homelab – ein VPS, zwei Compose-Projekte, ein Reverse Proxy
+# Homelab – ein VPS, drei Compose-Projekte, ein Reverse Proxy
 
-Auf einem gemieteten VPS laufen zehn Container: Blog, Automatisierung, Dokumentenarchiv,
-Suche, lokale Sprachmodelle und der Reverse Proxy davor. Dieses Repo dokumentiert, was
-läuft, wie es abgesichert ist – und was noch offen ist.
+Auf einem gemieteten VPS laufen elf Container: Blog, Automatisierung, Dokumentenarchiv,
+Suche, lokale Sprachmodelle, ein Dashboard und der Reverse Proxy davor. Dieses Repo
+dokumentiert, was läuft, wie es abgesichert ist – und was noch offen ist.
 
-> **Stand:** 03.11.2026. Belegt sind Compose-Dateien, `sshd -T`, `ufw status`,
+> **Stand:** 05.11.2026. Belegt sind Compose-Dateien, `sshd -T`, `ufw status`,
 > Docker-Inspect und zwei Restore-Tests. Was ich nicht belegen kann, steht als `TODO`.
 
 ## Architektur
@@ -17,6 +17,7 @@ flowchart TB
     NPM -->|"chat.*"| OWUI["Open WebUI"]
     NPM -->|"search.*"| SX["SearXNG"]
     NPM -->|"paperless.*"| PL["Paperless-ngx"]
+    NPM -->|"dash.*"| HP["Homepage"]
     G --> MYSQL[(MySQL 8.4)]
     PL --> PG[(Postgres 16)]
     PL --> R[(Redis 7)]
@@ -34,6 +35,7 @@ flowchart TB
 | Paperless-ngx | Dokumentenarchiv | 8000 intern | `paperless.<DEINE_DOMAIN>` |
 | Postgres 16 / Redis 7 | Paperless-DB und Broker | intern | nicht von außen |
 | Ollama | lokale Modelle | 11434 intern | nur über Open WebUI |
+| Homepage | Dashboard | `127.0.0.1:3000` | `dash.<DEINE_DOMAIN>` |
 
 NPM hängt in beiden Netzen (`homeserver_default` und `kisium-net`) und ist damit die
 einzige Brücke zwischen den Compose-Projekten. Die Verbindung zu `kisium-net` steht als
@@ -56,7 +58,7 @@ Recreate verloren. Details, Routen und Belege:
 - **Datenbanken ohne öffentlichen Port.** MySQL und Postgres sind nur in ihren
   Docker-Netzen erreichbar. Ein offener 3306/5432-Port ist ein häufiges Scan-Ziel.
 - **TLS endet am Proxy, HTTP wird umgeleitet.** Let's-Encrypt-Zertifikat, gültig bis
-  30.01.2027; `http://` antwortet mit `301`, HSTS ist auf allen fünf Hosts gesetzt.
+  30.01.2027; `http://` antwortet mit `301`, HSTS ist auf allen sechs Hosts gesetzt.
 - **Keine Daten an Dritte.** Gravatar, Update-Ping und RPC sind in Ghost abgeschaltet.
 - **Healthcheck und Laufzeitrechte.** Der Ghost-Check nutzt `nc -z` statt `wget`;
   `init: true` sorgt dafür, dass Kindprozesse eingesammelt werden. Vorher standen 1.354
@@ -103,6 +105,7 @@ sudo /opt/backups/run-restore-test.sh     # Paperless
 
 **Update:** Die `latest`-Images sind auf Digests gepinnt. Ein Update heißt bewusst:
 neuen Digest wählen, `docker compose up -d`, Health prüfen. Vorher sichern.
+Ausnahme: Homepage läuft auf `:latest` und wird manuell aktualisiert.
 
 ## Was ich dabei gelernt habe
 
@@ -136,5 +139,7 @@ neuen Digest wählen, `docker compose up -d`, Health prüfen. Vorher sichern.
 - [docs/lessons-learned.md](docs/lessons-learned.md) – Fehler und was daraus wurde
 - [compose/homeserver/README.md](compose/homeserver/README.md) – acht Container,
   Images auf Digests gepinnt
+- [compose/homepage/README.md](compose/homepage/README.md) – Dashboard, eigenes
+  Compose-Projekt im bestehenden Netz
 - [docs/evidence/README.md](docs/evidence/README.md) – Rohlogs zu SSH, UFW, Restore,
   Backup und Alterscheck

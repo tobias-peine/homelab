@@ -1,6 +1,6 @@
 # Lessons Learned
 
-Fünf Fehler, die mich Zeit gekostet haben – mit Ursache, Lösung und dem, was ich
+Sechs Fehler, die mich Zeit gekostet haben – mit Ursache, Lösung und dem, was ich
 seitdem anders mache. Wo eine Ursache nicht belegt ist, steht das dabei.
 
 ## 1. Der Container lief als root
@@ -116,6 +116,26 @@ er muss in die Compose-Datei.
 
 **Mitgenommen:** Dokumentation ist kein Papierkram, sondern Teil des Betriebs. Sie ist
 dann gut, wenn sie auch die offenen Stellen nennt – nicht nur das, was funktioniert.
+
+## 6. Die API war dokumentiert – aber anders als gedacht
+
+**Fehler:** Zertifikat per `POST /api/nginx/certificates` mit
+`meta: {letsencrypt_agree: true, dns_challenge: false}`. Antwort:
+`400 – data/meta must NOT have additional properties`.
+
+**Ursache:** Die NPM-API v2 validiert strikt (`additionalProperties: false`). In der
+laufenden Version ist `letsencrypt_agree` kein erlaubtes Feld mehr – die Zustimmung
+steckt schon im Aufruf. Viele Beispiele im Netz nennen es trotzdem noch.
+
+**Lösung:** Nicht dem Blogpost folgen, sondern dem Schema der laufenden Instanz:
+`GET /api/schema`, dann den passenden `paths`-Block lesen. Für das Zertifikat genügte
+`meta: {dns_challenge: false}`. Dasselbe Vorgehen hat auch die Reihenfolge geklärt:
+Access List und Zertifikat zuerst, deren IDs dann im Proxy-Host.
+
+**Mitgenommen:** Bei APIs ist die installierte Version die Wahrheit, nicht die
+Dokumentation im Netz. Ein Blick ins Schema kostet eine Minute und spart den zweiten
+Versuch. Und: `forward_host` nimmt den Container-Namen, nicht die Container-IP – die IP
+wechselt beim Recreate, der Name nicht.
 
 ---
 

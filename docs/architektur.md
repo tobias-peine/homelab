@@ -1,6 +1,6 @@
 # Architektur
 
-Ein VPS, zwei Compose-Projekte, zehn Container. NPM ist die einzige Brücke zwischen
+Ein VPS, drei Compose-Projekte, elf Container. NPM ist die einzige Brücke zwischen
 beiden Netzen. Diese Datei trennt belegte Fakten von offenen Fragen.
 
 ## Überblick
@@ -17,6 +17,7 @@ flowchart TB
         PG[(postgres:5432)]
         RD[(redis:6379)]
         OL["ollama:11434"]
+        HP["homepage:3000"]
     end
 
     subgraph KI["kisium-net"]
@@ -29,6 +30,7 @@ flowchart TB
     NPM -->|"chat.<domain>"| OWUI
     NPM -->|"search.<domain>"| SX
     NPM -->|"paperless.<domain>"| PL
+    NPM -->|"dash.<domain>"| HP
     G --> MY
     PL --> PG
     PL --> RD
@@ -55,13 +57,15 @@ gesetzt und ging beim Recreate verloren.
 | `paperless-db` | `postgres:16` | Paperless-DB | `homeserver_default` | ja |
 | `paperless-broker` | `redis:7` | Paperless-Queue | `homeserver_default` | ja |
 | `ollama` | `ollama/ollama` (Digest) | lokale Modelle | `homeserver_default` | nein (1000) |
+| `homepage` | `ghcr.io/gethomepage/homepage` (`latest`) | Dashboard | `homeserver_default` | ja |
 
 Die Root-Spalte ist ein Befund, kein Entwurf. Open WebUI (über ein Derived Image) und
 Ollama laufen als uid 1000, `n8n` als `node`; NPM bleibt als Proxy root, weil es 80/443
 bindet. Die übrigen Container starten als root und wechseln im Entrypoint den Benutzer.
 Alle Container laufen mit `no-new-privileges` und `cap_drop: ALL`; nur die für den
 Entrypoint nötigen Capabilities sind zurückgegeben. Die `latest`-Images sind auf die am
-03.11.2026 laufenden Digests gepinnt. Details: [hardening.md](hardening.md).
+03.11.2026 laufenden Digests gepinnt; Ausnahme ist `homepage` (`:latest`, manuell
+aktualisiert). Details: [hardening.md](hardening.md).
 
 ## Netze und Ports
 
@@ -75,6 +79,7 @@ Entrypoint nötigen Capabilities sind zurückgegeben. Die `latest`-Images sind a
 | 5678 | n8n | `127.0.0.1` | nein |
 | 8080 | Open WebUI | `127.0.0.1` | nein |
 | 8888 → 8080 | SearXNG | `127.0.0.1` | nein |
+| 3000 | Homepage | `127.0.0.1` | nein |
 | 8000 | Paperless | nur Netz | nein |
 | 3306 / 5432 / 6379 / 11434 | MySQL / Postgres / Redis / Ollama | nur Netz | nein |
 
@@ -90,8 +95,9 @@ UFW lässt eingehend ausschließlich 80/443 und `tailscale0` zu. Port 22 ist im
 | `chat.<DEINE_DOMAIN>` | `open-webui` | 8080 |
 | `search.<DEINE_DOMAIN>` | `searxng` | 8080 |
 | `paperless.<DEINE_DOMAIN>` | `paperless` | 8000 |
+| `dash.<DEINE_DOMAIN>` | `homepage` | 3000 |
 
-Quelle: die fünf `proxy_host/*.conf` im NPM-Container. Die Domains sind hier durch
+Quelle: die sechs `proxy_host/*.conf` im NPM-Container. Die Domains sind hier durch
 Platzhalter ersetzt; im Repo steht keine echte Domain außer dem öffentlichen Blog-Link.
 
 ## Request-Pfad
