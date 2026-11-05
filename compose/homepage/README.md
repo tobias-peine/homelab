@@ -38,6 +38,27 @@ Port 3000 selbst ist nur an `127.0.0.1` gebunden.
 App auf dem Loopback mit `400` – und die eigene Kachel (siteMonitor auf
 `http://homepage:3000`) bliebe rot.
 
+## Widgets
+
+Jede Kachel hat `siteMonitor` plus Docker-Containerstatus. Dazu kommen
+Datenwidgets, alle als `customapi` – der eingebaute `paperlessngx`-Typ sendet
+den Token nicht mit (Antwort war die HTML-Login-Seite von Paperless).
+
+| Dienst | Anzeige | Quelle | Variable |
+|---|---|---|---|
+| Paperless | Dokumente | `http://paperless:8000/api/statistics/` | `HOMEPAGE_VAR_PAPERLESS_TOKEN` |
+| n8n | Workflows, letzte Ausführung | `http://n8n:5678/api/v1/...` | `HOMEPAGE_VAR_N8N_KEY` |
+| Blog | Beiträge, letzter Beitrag, zuletzt | Ghost Content API | `HOMEPAGE_VAR_GHOST_KEY` |
+
+Die Variablen stehen in `.env` (chmod 600); `config/services.yaml` referenziert
+sie nur als `{{HOMEPAGE_VAR_...}}` und enthält keine Klartext-Secrets.
+
+Bei Ghost funktioniert hier die reine 24-stellige Key-ID als Content-API-Key;
+der `id:secret`-Wert wird mit `401 UNKNOWN_CONTENT_API_KEY` abgelehnt.
+
+`settings.yaml`, `services.yaml`, `bookmarks.yaml` und `custom.css` liegen pro
+Host auf dem Server unter `config/` und nicht im Repo.
+
 ## Einrichtung über die NPM-API
 
 ```bash
