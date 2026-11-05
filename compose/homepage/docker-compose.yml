@@ -7,8 +7,8 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      # Muss exakt der Host sein, unter dem der Browser aufruft - sonst 400.
-      HOMEPAGE_ALLOWED_HOSTS: ${DASH_HOST}
+      # Externer Host plus interne Namen: die eigene Kachel fragt sich selbst ab.
+      HOMEPAGE_ALLOWED_HOSTS: ${DASH_HOST},homepage:3000,127.0.0.1:3000,localhost:3000
     ports:
       - "127.0.0.1:3000:3000"
     volumes:

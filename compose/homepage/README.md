@@ -33,6 +33,11 @@ NPM-Proxy-Host `dash.<DEINE_DOMAIN>` → `homepage:3000`, Access List
 `dash-auth` (Basic Auth), Let's-Encrypt-Zertifikat, Force SSL, HTTP/2.
 Port 3000 selbst ist nur an `127.0.0.1` gebunden.
 
+`HOMEPAGE_ALLOWED_HOSTS` enthält neben der Domain auch `homepage:3000`,
+`127.0.0.1:3000` und `localhost:3000`. Ohne die internen Namen antwortet die
+App auf dem Loopback mit `400` – und die eigene Kachel (siteMonitor auf
+`http://homepage:3000`) bliebe rot.
+
 ## Einrichtung über die NPM-API
 
 ```bash
